@@ -1,0 +1,23 @@
+#include </nfs/astrop/d1/hess/software/head20081007/utilities/include/TBoundedGaussian.hh>
+#include <iostream>
+ 
+//using namespace std;
+
+void FCTest(double flux, double sigma_flux){
+
+ Utilities::TBoundedGaussian fc(0.99); //99% confidence level
+ double upper(0),lower(0);
+//  double flux = 100;
+//  double sigma_flux = 10;
+ std::cout << "Measured flux is: " << flux << std::endl;
+ std::cout << "Error of flux is: " << sigma_flux << std::endl;
+ fc.GetConfidenceInterval(flux,sigma_flux,lower,upper);
+ if( lower<=0 )
+   std::cout << fc.GetCL()*100.0 << "% CL upper limit on flux: " << upper << std::endl;
+ else {
+   std::cout << "Confidence interval for true flux: " << lower << " .. " << upper << std::endl;
+   std::cout << "Flux is (at " << fc.GetCL()*100.0 << " \% confidence level): " << std::endl;
+   std::cout << flux << " -" << flux-lower << " +" << upper-flux << std::endl;
+ }
+
+}
