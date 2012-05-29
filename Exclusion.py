@@ -78,72 +78,18 @@ pickle.dump(ObjList, open('saveObj.p', 'wb'))
 pickle.dump(PubList, open('savePub.p', 'wb'))
 
 
-## print '\n1'
-## print pickle.load(open('save1.p'))
-## print '\n2'
-## print pickle.load(open('save2.p'))
-## print '\n3'
-## test1 = pickle.load(open('save3.p'))
-## print test1
-## test1.printObject()
-## print '\n3-2'
-## test2 = pickle.load(open('save3.p'))
-## print test2
-## print
+########################################################
+# Plot stuff:
+########################################################
 
-## #testE = pickle.load(open('save3.p'))
-## #print testE
-
-## testL = pickle.load(open('save2.p'))
-## for i in range(len(testL)):
-##     testL[i].printObject()
-
-
-Plotting.plotObjects()
+Plotting.plotAeffs()
+#Plotting.plotObjects()
     
 
 print "\nund tschuess \n"
 sys.exit()
 
-########################################################
-# Plot upper limits: (for the moment)
-
-# new:
-fig1 = plt.figure(1)
-ax1 = fig1.add_subplot(111)
-ax1.set_yscale('log')
-ax1.set_xscale('log')
-plot1 = ax1.plot(energies,Segue1M.ul,
-                 energies,Segue1V.ul,
-                 energies,Sculptor.ul,
-                 energies,Sgr.ul,
-                 Segue1M_bb[:,0],Segue1M_bb[:,1],
-                 Segue1V_bb[:,0],Segue1V_bb[:,1])
-ax1.set_ylabel(r'<$\sigma$v>$_{\textrm{UL}}$ (cm$^{3}$s$^{-1}$)')
-ax1.set_xlabel('E (GeV)')
-ax1.set_ylim(1e-26,1e-20)
-
-#plot2 = ax1.plot(Segue1M_bb[:,0],Segue1M_bb[:,1],
-#                 Segue1V_bb[:,0],Segue1V_bb[:,1])
-
-leg1 = plt.legend(plot1, ("Segue 1 limits / MAGIC",
-                          "Segue 1 limits / VERITAS",
-                          "Sculptor limits / HESS",
-                          "Sgr limits / HESS",
-                          "Segue/MAGIC, from paper",
-                          "Segue/VERITAS, from paper"),
-                  loc=3,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
-
-
-
-#leg2 = plt.legend(plot2, ("Segue 1 limits / MAGIC, from paper"),
-#           'lower left' )
-
-plt.show()
-
-#Plotting.ObjectPlot()
-
-sys.exit()
+##########################################################
 
 
 ############################################################

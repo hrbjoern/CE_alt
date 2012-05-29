@@ -69,3 +69,22 @@ def plotPubs(Pubs=False):
     plt.legend(loc=3,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
     plt.show()
 
+
+def plotAeffs():
+    # Open pickle file:
+    ObjList = pickle.load(open('saveObj.p'))
+    print ObjList
+    # Prepare plot:
+    fig1 = plt.figure(1)
+    ax1 = fig1.add_subplot(111)
+    ax1.set_yscale('log')
+    ax1.set_xscale('log')
+    ax1.set_xlabel('E (GeV)')
+    ax1.set_ylabel(r'A$_{\rm eff}$ (cm$^2$)')
+
+    #Plot stuff:
+    for o in ObjList:
+        print o.Name
+        ax1.plot(o.Aeffdata[:,0],o.Aeffdata[:,1],label=o.Name)
+    plt.legend(loc=4)
+    plt.show()
