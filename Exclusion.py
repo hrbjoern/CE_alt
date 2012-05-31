@@ -32,7 +32,7 @@ print "Importing complete\n"
 Segue1M = Object("Segue1M", "Aeffs/MAGIC_Gaug_Aeff.dat",29.42,1.14e19,453)
 Segue1M.printObject()
 
-Segue1V = Object("Segue1V","Aeffs/HESS_Aeffs_Crab_20deg.dat",47.8,7.7e18,135.9)
+Segue1V = Object("Segue1V","Aeffs/VERITAS-Aeff_20deg.dat",47.8,7.7e18,135.9)
 Segue1V.printObject()
 
 Sculptor = Object("Sculptor","Aeffs/HESS_Aeffs_Crab_20deg.dat",11.8,2.9e17,32.4)
@@ -49,12 +49,21 @@ ObjList = (Segue1M,Segue1V,Sculptor,Sgr)
 print "\nAll energies are in GeV\n"
 
 # IMPORTANT. Basic energy value spacing.
-energies = np.logspace(2,5,100)
+try:
+    esteps = int(sys.argv[1])
+except:
+    esteps = 100
+print '\nenergy steps =', esteps
+print
+
+energies = np.logspace(2,5,esteps)
 
 for o in ObjList:
-    o.ul=[]
+    o.ul_tautau=[]
+    o.ul_bbbar=[]
     for mchi in energies:
-        o.ul.append(o.ULsigmav(mchi))
+        o.ul_tautau.append(o.ULsigmav_tautau(mchi))
+        o.ul_bbbar.append(o.ULsigmav_bbbar(mchi))
 
 
 ########################################################
@@ -82,8 +91,8 @@ pickle.dump(PubList, open('savePub.p', 'wb'))
 # Plot stuff:
 ########################################################
 
-Plotting.plotAeffs()
-#Plotting.plotObjects()
+#Plotting.plotAeffs()
+Plotting.plotObjects()
     
 
 print "\nund tschuess \n"

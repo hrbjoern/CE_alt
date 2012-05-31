@@ -6,6 +6,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import cPickle as pickle
+from math import log, log10
 
 
 def plotObjects():
@@ -28,7 +29,7 @@ def plotObjects():
     
     #Plot stuff:
     for o in ObjList:
-        ax1.plot(energies,o.ul,label=o.Name)
+        ax1.plot(energies,o.ul_bbbar,label=o.Name)
 
     ## for o in PubList:
     ##     ax1.plot(o[:,0],o[:,1])
@@ -87,4 +88,33 @@ def plotAeffs():
         print o.Name
         ax1.plot(o.Aeffdata[:,0],o.Aeffdata[:,1],label=o.Name)
     plt.legend(loc=4)
+    plt.show()
+
+
+def plotSpectra():
+    # Import spectra:
+    from PhotonSpectra import tautau, bbbar
+    # Data:
+    mchi=1000.
+    energies = np.linspace(30.,1010.,1000)
+    tautaulist = []
+    bbbarlist = []
+    for e in energies:
+        tautaulist.append(tautau(e,mchi))
+        bbbarlist.append(bbbar(e,mchi))
+
+    # Prepare plot:
+    fig1 = plt.figure(1)
+    ax1 = fig1.add_subplot(111)
+    ax1.set_yscale('log')
+    ax1.set_xscale('log')
+    ax1.set_xlabel('E (GeV)')
+    ax1.set_ylabel(r'dN/dE (GeV$^{-1}$)')
+    ax1.set_xlim(30.,1010.)
+    ax1.set_title(r'Spectra for $m_\chi$ = 1000 GeV')
+
+    plot1 = ax1.plot(energies, tautaulist, label=r'$\tau\tau$')
+    plot2 = ax1.plot(energies, bbbarlist, label=r'$b\bar{b}$')
+
+    plt.legend(loc='lower left')
     plt.show()

@@ -18,12 +18,13 @@ class Object(object):
         self.Eth = 30.
         self.Aeffdata = np.genfromtxt(aeff)
         # Consider all energies in GeV, all Aeffs in cm**2:
-        self.Aeffdata[:,1]*=1e4 
-        if self.Name == "Segue1M":
-            self.Aeffdata[:,1]*=100. # Factor 100 in MAGIC Aeff table
-            self.Eth = 100.
-        elif self.Name == "Segue1V" or "Sculptor" or "Sgr": # Works! :)
-            self.Aeffdata[:,0]*=1000. # TeV to GeV
+        if not self.Name=="Segue1V":
+            self.Aeffdata[:,1]*=1e4 
+            if self.Name == "Segue1M":
+                self.Aeffdata[:,1]*=100. # Factor 100 in MAGIC Aeff table
+                self.Eth = 100.
+            elif self.Name == "Sculptor" or "Sgr": # Works! :)
+                self.Aeffdata[:,0]*=1000. # TeV to GeV
         self.Tobs = tobs*3600.
         self.Jbar = jbar
         self.Nul = nul
@@ -44,14 +45,22 @@ class Object(object):
         else:
             return 0.
 
-    def ULsigmav(self,mchi):
+    def ULsigmav_tautau(self,mchi):
         """ Calculates UL on sigmav with a standard Bergstrom spectrum."""
-        prefactor = 8*pi*mchi**2*self.Nul/(self.Tobs*self.Jbar)
-        result = prefactor / quad(lambda E: (Bergstrom1998(E,mchi)*self.Aeff(E)), self.Eth, 1.1*mchi,
-                                  limit=50,full_output=1)[0]
-        #        return np.minimum(result,1.)
+        prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
+#        result = prefactor / quad(lambda E: (Bergstrom1998(E,mchi)*self.Aeff(E)),
+#                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
+        result = prefactor / quad(lambda E: (tautau(E,mchi)*self.Aeff(E)),
+                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
+#        return np.minimum(result,1.)
         return result
-        
+    
+    def ULsigmav_bbbar(self,mchi):
+        """ Calculates UL on sigmav with a standard Bergstrom spectrum."""
+        prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
+        result = prefactor / quad(lambda E: (bbbar(E,mchi)*self.Aeff(E)),
+                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
+        return result     
     
         
 class Pub(object):

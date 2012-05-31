@@ -1,8 +1,71 @@
-from math import pi, exp
+from math import pi, exp, log
 
 
 ############################################################
-# Spectra:
+# Cembranos Spectra:
+##############################################
+
+# General:
+def dNdx(x,a1,b1,b2,c1,c2,d1,d2,q,p,n1,n2):
+    return (x**-1.5) * (a1*exp(-b1*x**n1 -b2*x**n2
+                               -c1/x**d1 +c2/x**d2)
+                        +(q*(x**1.5)*log(p*(1.-x))
+                          *((x**2-2*x+2)/x)))
+                                                
+# tautau:
+def tautau(E, mchi):
+    if (E < 10 or E>=mchi):
+        return 0.
+    else:
+        x = E/mchi
+        a1=14.7
+        b1=5.4
+        b2=5.31
+        n2=1.4
+        c1=2.54
+        d1=0.295
+        c2=0.373
+        d2=0.47
+        q=0.0026
+        if (25 < mchi < 1e4):
+            n1 = 10.6*mchi**-0.0148
+            p = 0.773*mchi**1.75
+        elif mchi >= 1e4:
+            n1 = -7*mchi**-1.99 + 179.*mchi**-0.763 + 9.09
+            p = 3.07*mchi**1.55
+        return mchi**-1*dNdx(x,a1,b1,b2,c1,c2,d1,d2,q,p,n1,n2)
+
+# bbbar:
+def bbbar(E, mchi):
+    if (E < 10 or E>=mchi):
+        return 0.
+    else:
+        x = E/mchi
+        a1=10.
+        b1 = 152.*mchi**-0.462
+        b2=11.0
+        n1 = 18.7*mchi**-0.248
+        c1 = 0.328*mchi**0.0447
+        d1=0.295
+        c2=0.0151
+        d2=0.55
+        q=2.6e-4
+        p = 11.8*mchi**0.641
+        if (25 < mchi < 1000):
+            n2 = 0.805*mchi**-0.0319
+        elif mchi >= 1e3:
+            n2 = 0.707*mchi**-0.0129
+        if (25 < mchi < 600):
+            d1 = 0.474*mchi**-0.0639 + 37.1*mchi**-1.87
+        elif mchi>=600:
+            d1 = 0.449*mchi**-0.0552
+        return mchi**-1*dNdx(x,a1,b1,b2,c1,c2,d1,d2,q,p,n1,n2)
+
+
+
+
+############################################################
+# "Old" Spectra:
 ##############################################
 
 def Bergstrom1998(E,mchi):
