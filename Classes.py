@@ -18,12 +18,16 @@ class Object(object):
         self.Eth = 30.
         self.Aeffdata = np.genfromtxt(aeff)
         # Consider all energies in GeV, all Aeffs in cm**2:
-        if not self.Name=="Segue1V":
+        if self.Name=="Segue1V" or self.Name=="Willman1V":
+            pass
+            #print "HalloHallo!"
+            #print self.Name
+        else:
             self.Aeffdata[:,1]*=1e4 
             if self.Name == "Segue1M":
                 self.Aeffdata[:,1]*=100. # Factor 100 in MAGIC Aeff table
                 self.Eth = 100.
-            elif self.Name == "Sculptor" or "Sgr": # Works! :)
+            else:
                 self.Aeffdata[:,0]*=1000. # TeV to GeV
         self.Tobs = tobs*3600.
         self.Jbar = jbar
@@ -46,7 +50,7 @@ class Object(object):
             return 0.
 
     def ULsigmav_tautau(self,mchi):
-        """ Calculates UL on sigmav with a standard Bergstrom spectrum."""
+        """ Calculates UL on sigmav with a Cembranos tautau spectrum."""
         prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
 #        result = prefactor / quad(lambda E: (Bergstrom1998(E,mchi)*self.Aeff(E)),
 #                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
@@ -56,13 +60,20 @@ class Object(object):
         return result
     
     def ULsigmav_bbbar(self,mchi):
-        """ Calculates UL on sigmav with a standard Bergstrom spectrum."""
+        """ Calculates UL on sigmav with a Cembranos bbbar spectrum."""
         prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
         result = prefactor / quad(lambda E: (bbbar(E,mchi)*self.Aeff(E)),
                                   self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
         return result     
     
-        
+    def ULsigmav_WW(self,mchi):
+        """ Calculates UL on sigmav with a standard Bergstrom spectrum."""
+        prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
+        result = prefactor / quad(lambda E: (Bergstrom1998(E,mchi)*self.Aeff(E)),
+                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
+        return result
+
+    
 class Pub(object):
     """This class holds the actual limits from publications."""
 
