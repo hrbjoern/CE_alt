@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cPickle as pickle
 from math import log, log10
+from scipy.integrate import quad
 
 
 def plotObjects():
@@ -22,7 +23,7 @@ def plotObjects():
     ax1.set_xscale('log')
     ax1.set_ylabel(r'<$\sigma$v>$_{\textrm{UL}}$ (cm$^{3}$s$^{-1}$)')
     ax1.set_xlabel('E (GeV)')
-    ax1.set_ylim(1e-24,1e-20)
+    ax1.set_ylim(1e-26,1e-20)
     ax1.set_xlim(1e2,1e5)
     ax1.yaxis.grid(color='gray', linestyle='dashed')
     ax1.xaxis.grid(color='gray', linestyle='dashed')
@@ -32,7 +33,8 @@ def plotObjects():
         if o.Name=="SculptorIso":
             ax1.plot(energies,o.ul_WW,label=o.Name)
             #print o.Aeffdata
-
+        elif o.Name=="Segue1V_tautau":
+            ax1.plot(energies,o.ul_tautau,label=r"Segue1Vtautau")
         else:
             ax1.plot(energies,o.ul_bbbar,label=o.Name)
             #if o.Name=="Willman1V":
@@ -47,14 +49,14 @@ def plotObjects():
     #Pubs = False
 
     if Pubs:
-        plotPubs(Pubs=True)
+        plotPubs()
     else:
-        plt.legend(loc=3,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
+        plt.legend(loc=4,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
         plt.show()
     
     return 0
 
-def plotPubs(Pubs=False):
+def plotPubs():
     """Plot the published limits for comparison"""
 
     # Open pickle files:
@@ -67,7 +69,7 @@ def plotPubs(Pubs=False):
     ax1.set_xscale('log')
     ax1.set_ylabel(r'<$\sigma$v>$_{\textrm{UL}}$ (cm$^{3}$s$^{-1}$)')
     ax1.set_xlabel('E (GeV)')
-    ax1.set_ylim(1e-25,1e-20)
+    ax1.set_ylim(1e-26,1e-20)
     ax1.yaxis.grid(color='gray', linestyle='dashed')
     ax1.xaxis.grid(color='gray', linestyle='dashed')
 
@@ -80,14 +82,55 @@ def plotPubs(Pubs=False):
     for p in PubList:
         ax1.plot(p.energies, p.ul, label=p.legend, linestyle='dashed')
 
-    plt.legend(loc=3,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
+    plt.legend(loc=4,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
+
+    Comb=True
+    if Comb:
+        plotComb()
+    else:
+        plt.show()
+
+def plotComb():
+    """Plot the combined limit for comparison"""
+
+    # Open pickle files:
+    energies = pickle.load(open('saveE.p'))
+    CombList = pickle.load(open('saveComb.p'))
+    print
+    print energies
+    print CombList
+    print
+    print
+
+    # Prepare plot:
+    fig1 = plt.figure(1)
+    ax1 = fig1.add_subplot(111)
+    ax1.set_yscale('log')
+    ax1.set_xscale('log')
+    ax1.set_ylabel(r'<$\sigma$v>$_{\textrm{UL}}$ (cm$^{3}$s$^{-1}$)')
+    ax1.set_xlabel('E (GeV)')
+    ax1.set_ylim(1e-27,1e-20)
+    ax1.yaxis.grid(color='gray', linestyle='dashed')
+    ax1.xaxis.grid(color='gray', linestyle='dashed')
+
+    # Reset color map?
+    #matplotlib.cm.get_cmap()
+    #matplotlib.colors.Normalize()
+    ax1.set_color_cycle(('b','g','r','c','m','y'))
+
+    # Plot stuff:
+    #    for c in CombList:
+    #        print c
+    ax1.plot(energies, CombList, color='black', label='Combined limit')
+
+    plt.legend(loc=4,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
     plt.show()
 
-
+    
 def plotAeffs():
     # Open pickle file:
     ObjList = pickle.load(open('saveObj.p'))
-    print ObjList
+
     # Prepare plot:
     fig1 = plt.figure(1)
     ax1 = fig1.add_subplot(111)
@@ -103,6 +146,9 @@ def plotAeffs():
     #Plot stuff:
     for o in ObjList:
         print o.Name
+        print 'Aeff = %e' % ((quad(lambda E: o.Aeff(E),
+                                   o.Aeffdata[0,0], o.Aeffdata[-1,0])[0])
+                             /(o.Aeffdata[-1,0]- o.Aeffdata[0,0]))
         ax1.plot(o.Aeffdata[:,0],o.Aeffdata[:,1],label=o.Name)
     plt.legend(["MAGIC","VERITAS","HESS Sgr","HESS Scu"],loc=4)
     plt.show()

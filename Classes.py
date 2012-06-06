@@ -3,7 +3,7 @@ from math import pi, exp
 from scipy.integrate import quad
 from scipy import interpolate
 import numpy as np
-
+import fnmatch
 
 class Object(object):
     """This class is supposed to hold the different \"objects\", i.e. 
@@ -18,10 +18,12 @@ class Object(object):
         self.Eth = 30.
         self.Aeffdata = np.genfromtxt(aeff)
         # Consider all energies in GeV, all Aeffs in cm**2:
-        if self.Name=="Segue1V" or self.Name=="Willman1V":
-            pass
-            #print "HalloHallo!"
-            #print self.Name
+#        if self.Name=="Segue1V*" or self.Name=="Willman1V":
+        if fnmatch.fnmatch(self.Name,'Segue1V*') or self.Name=="Willman1V":
+            print "HalloHallo!"
+            print self.Name
+#            pass
+#            self.Eth = 300.
         else:
             self.Aeffdata[:,1]*=1e4 
             if self.Name == "Segue1M":
@@ -73,6 +75,7 @@ class Object(object):
                                   self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
         return result
 
+    
     
 class Pub(object):
     """This class holds the actual limits from publications."""

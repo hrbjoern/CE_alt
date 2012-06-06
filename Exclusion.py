@@ -14,9 +14,11 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import cPickle as pickle
+from math import pi
+from scipy.integrate import quad
 
 from Classes import Object, Pub
-
+import PhotonSpectra
 import Plotting
 
 print "Importing complete\n"
@@ -35,6 +37,9 @@ Segue1M.printObject()
 Segue1V = Object("Segue1V","Aeffs/VERITAS-Aeff_20deg.dat",47.8,7.7e18,135.9)
 Segue1V.printObject()
 
+Segue1V_tautau = Object("Segue1V_tautau","Aeffs/VERITAS-Aeff_20deg.dat",47.8,7.7e18,135.9)
+Segue1V.printObject()
+
 SculptorIso = Object("SculptorIso","Aeffs/HESS_Aeffs_Crab_20deg.dat",11.8,2.9e17,32.4)
 SculptorIso.printObject()
 
@@ -47,7 +52,7 @@ Sgr.printObject()
 Willman1V = Object("Willman1V", "Aeffs/VERITAS-Aeff_20deg.dat",13.68,84.3e17,18.8)
 Willman1V.printObject()
 
-ObjList = (Segue1M, Segue1V, SculptorIso, Willman1V, Sgr)
+ObjList = (Segue1M, Segue1V, Segue1V_tautau, SculptorIso, Willman1V, Sgr)
 #ObjList = (Segue1M,Segue1V)
 
 # Consider all energies in GeV!!!
@@ -60,9 +65,42 @@ except:
     esteps = 100
 print '\nenergy steps =', esteps
 print
-
 energies = np.logspace(2,5,esteps)
 
+# EQUALLY important: Combined upper limit(s).
+UL_bbbar = []
+
+SumOfTobs = 0.
+SumOfJbar = 0.
+SumOfNul = 0.
+
+for o in ObjList:
+    SumOfTobs += o.Tobs
+    SumOfJbar += o.Jbar
+    SumOfNul += o.Nul
+    
+def SumOfAeff(E):
+    soa = 0.
+    for o in ObjList:
+        soa += o.Aeff(E)
+    return soa
+
+SumOfStuff = SumOfNul/(SumOfTobs*SumOfJbar)
+
+for mchi in energies:
+    UL_bbbar.append(8.*pi*mchi**2*SumOfStuff/
+                    quad(lambda E: (PhotonSpectra.bbbar(E,mchi)*SumOfAeff(E)),
+                         30., 1.01*mchi, limit=50,full_output=1)[0])
+
+print
+print 'UL_bbbar = ', UL_bbbar
+print
+
+CombList = (UL_bbbar)
+
+#sys.exit()
+
+# Calculate individual upper limits for different spectra:
 for o in ObjList:
     o.ul_tautau=[]
     o.ul_bbbar=[]
@@ -73,14 +111,19 @@ for o in ObjList:
         o.ul_WW.append(o.ULsigmav_WW(mchi))
 
 
+
+
 ########################################################
 # Data from publications:
 ########################################################
 Segue1M_bb = Pub("Segue1M_bb","Publications/MAGIC_Segue1_ULsigmav_bb.dat",
-                 "Segue1/MAGIC, bbar, published")
+                 "Segue1/MAGIC, bbar")
 
 Segue1V_bb = Pub("Segue1V_bb","Publications/VERITAS_Segue1_ULsigmav_bb.dat",
-                 "Segue1/VERITAS, bbar, published")
+                 "Segue1/VERITAS, bbar")
+
+Segue1V_tautau = Pub("Segue1V_tautau","Publications/VERITAS_Segue1_ULsigmav_tautau.dat",
+                 "Segue1/VERITAS, tautau")
 
 Sculptor_IsoWW = Pub("Sculptor_IsoWW", "Publications/HESS_Scu-Limits_IsoBeta05.dat",
                    "Sculptor/HESS, Iso profile")
@@ -89,7 +132,7 @@ Willman1V_bb = Pub("Willman1V_bb", "Publications/VERITAS_Dwarfs_Willman1.dat",
                    "Willman 1/VERITAS")
                    
 
-PubList = (Segue1M_bb,Segue1V_bb, Sculptor_IsoWW, Willman1V_bb)
+PubList = (Segue1M_bb, Segue1V_bb, Segue1V_tautau, Sculptor_IsoWW, Willman1V_bb)
 
 
 ########################################################
@@ -99,7 +142,7 @@ PubList = (Segue1M_bb,Segue1V_bb, Sculptor_IsoWW, Willman1V_bb)
 pickle.dump(energies, open('saveE.p','wb'))
 pickle.dump(ObjList, open('saveObj.p', 'wb'))
 pickle.dump(PubList, open('savePub.p', 'wb'))
-
+pickle.dump(CombList, open('saveComb.p', 'wb'))
 
 ########################################################
 # Plot stuff:
