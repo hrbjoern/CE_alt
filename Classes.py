@@ -29,6 +29,10 @@ class Object(object):
             if self.Name == "Segue1M":
                 self.Aeffdata[:,1]*=100. # Factor 100 in MAGIC Aeff table
                 self.Eth = 100.
+            elif fnmatch.fnmatch(self.Name,'Scu*'):
+                self.Aeffdata[:,1]*=0.8 # Fudge efficiency factor
+                self.Aeffdata[:,0]*=1000. # TeV to GeV
+                self.Eth = 200.
             else:
                 self.Aeffdata[:,0]*=1000. # TeV to GeV
         self.Tobs = tobs*3600.

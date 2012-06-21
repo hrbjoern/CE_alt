@@ -22,7 +22,7 @@ def plotObjects():
     ax1.set_yscale('log')
     ax1.set_xscale('log')
     ax1.set_ylabel(r'<$\sigma$v>$_{\textrm{UL}}$ (cm$^{3}$s$^{-1}$)')
-    ax1.set_xlabel('E (GeV)')
+    ax1.set_xlabel(r'$m_{\chi}$ (GeV)')
     ax1.set_ylim(1e-26,1e-20)
     ax1.set_xlim(1e2,1e5)
     ax1.yaxis.grid(color='gray', linestyle='dashed')
@@ -68,7 +68,7 @@ def plotPubs():
     ax1.set_yscale('log')
     ax1.set_xscale('log')
     ax1.set_ylabel(r'<$\sigma$v>$_{\textrm{UL}}$ (cm$^{3}$s$^{-1}$)')
-    ax1.set_xlabel('E (GeV)')
+    ax1.set_xlabel(r'$m_{\chi}$ (GeV)')
     ax1.set_ylim(1e-26,1e-20)
     ax1.yaxis.grid(color='gray', linestyle='dashed')
     ax1.xaxis.grid(color='gray', linestyle='dashed')
@@ -96,11 +96,10 @@ def plotComb():
     # Open pickle files:
     energies = pickle.load(open('saveE.p'))
     CombList = pickle.load(open('saveComb.p'))
-    print
-    print energies
-    print CombList
-    print
-    print
+    ## print
+    ## print energies
+    ## print CombList
+    ## print
 
     # Prepare plot:
     fig1 = plt.figure(1)
@@ -108,7 +107,7 @@ def plotComb():
     ax1.set_yscale('log')
     ax1.set_xscale('log')
     ax1.set_ylabel(r'<$\sigma$v>$_{\textrm{UL}}$ (cm$^{3}$s$^{-1}$)')
-    ax1.set_xlabel('E (GeV)')
+    ax1.set_xlabel(r'$m_\chi$ (GeV)')
     ax1.set_ylim(1e-27,1e-20)
     ax1.yaxis.grid(color='gray', linestyle='dashed')
     ax1.xaxis.grid(color='gray', linestyle='dashed')
@@ -121,7 +120,8 @@ def plotComb():
     # Plot stuff:
     #    for c in CombList:
     #        print c
-    ax1.plot(energies, CombList, color='black', label='Combined limit')
+    ax1.plot(energies, CombList, color='black', lw=3, 
+             linestyle='dotted', label='Combined limit')
 
     plt.legend(loc=4,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
     plt.show()
@@ -130,7 +130,19 @@ def plotComb():
 def plotAeffs():
     # Open pickle file:
     ObjList = pickle.load(open('saveObj.p'))
+    energies = pickle.load(open('saveE.p'))
+    
+    # For plotting the combination:
+    def SumOfAeff(E):
+        soa = 0.
+        for o in ObjList:
+            soa += o.Aeff(E)
+        return soa
 
+    SOAlist = []
+    for e in energies:
+        SOAlist.append(SumOfAeff(e))
+    
     # Prepare plot:
     fig1 = plt.figure(1)
     ax1 = fig1.add_subplot(111)
@@ -146,11 +158,18 @@ def plotAeffs():
     #Plot stuff:
     for o in ObjList:
         print o.Name
+        # Calculate mean effective area:
         print 'Aeff = %e' % ((quad(lambda E: o.Aeff(E),
                                    o.Aeffdata[0,0], o.Aeffdata[-1,0])[0])
                              /(o.Aeffdata[-1,0]- o.Aeffdata[0,0]))
+        # Plot eff. area:
         ax1.plot(o.Aeffdata[:,0],o.Aeffdata[:,1],label=o.Name)
-    plt.legend(["MAGIC","VERITAS","HESS Sgr","HESS Scu"],loc=4)
+
+    # Plot summed eff. area:
+    #ax1.plot(energies, SOAlist, label="combined")
+    
+#    plt.legend(["MAGIC","VERITAS","HESS Sgr","HESS Scu"],loc=4)
+#    plt.legend(loc=4)
     plt.show()
 
 
@@ -176,6 +195,8 @@ def plotSpectra():
     ax1.set_xlabel('E (GeV)')
     ax1.set_ylabel(r'dN/dE (GeV$^{-1}$)')
     ax1.set_xlim(30.,1010.)
+    ax1.yaxis.grid(color='gray', linestyle='dashed')
+    ax1.xaxis.grid(color='gray', linestyle='dashed')
     ax1.set_title(r'Spectra for $m_\chi$ = 1000 GeV')
 
     plot1 = ax1.plot(energies, tautaulist, label=r'$\tau\tau$')

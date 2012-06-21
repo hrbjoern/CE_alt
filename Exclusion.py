@@ -70,31 +70,37 @@ energies = np.logspace(2,5,esteps)
 # EQUALLY important: Combined upper limit(s).
 UL_bbbar = []
 
-SumOfTobs = 0.
-SumOfJbar = 0.
+SumOfTobsTimesJbar = 0.
 SumOfNul = 0.
+SumOfStuff = 0.
 
-for o in ObjList:
-    SumOfTobs += o.Tobs
-    SumOfJbar += o.Jbar
-    SumOfNul += o.Nul
+CombinationList = (Segue1M, Segue1V, SculptorIso, Willman1V,Sgr)
+#CombinationList = (Segue1M, Segue1V, SculptorIso, Willman1V)
+#CombinationList = (Segue1V, Segue1V, Segue1V, Segue1V)
+
+
+for o in CombinationList:
+     SumOfNul += o.Nul
+##     SumOfTobsTimesJbar += o.Tobs*o.Jbar
+##     ## SumOfJbar += o.Jbar
     
-def SumOfAeff(E):
+def IntegrandSum(E):
     soa = 0.
-    for o in ObjList:
-        soa += o.Aeff(E)
+    for o in CombinationList:
+        soa += o.Tobs*o.Jbar*o.Aeff(E)
     return soa
 
-SumOfStuff = SumOfNul/(SumOfTobs*SumOfJbar)
+#SumOfStuff = SumOfNul/SumOfTobsTimesJbar
+
 
 for mchi in energies:
-    UL_bbbar.append(8.*pi*mchi**2*SumOfStuff/
-                    quad(lambda E: (PhotonSpectra.bbbar(E,mchi)*SumOfAeff(E)),
+    UL_bbbar.append(8.*pi*mchi**2*SumOfNul/
+                    quad(lambda E: (PhotonSpectra.bbbar(E,mchi)*IntegrandSum(E)),
                          30., 1.01*mchi, limit=50,full_output=1)[0])
 
-print
-print 'UL_bbbar = ', UL_bbbar
-print
+## print
+## print 'UL_bbbar = ', UL_bbbar
+## print
 
 CombList = (UL_bbbar)
 
