@@ -83,6 +83,9 @@ for o in CombinationList:
      SumOfNul += o.Nul
 ##     SumOfTobsTimesJbar += o.Tobs*o.Jbar
 ##     ## SumOfJbar += o.Jbar
+
+print 'SumOfNul = ', SumOfNul
+#sys.exit()
     
 def IntegrandSum(E):
     soa = 0.

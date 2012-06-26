@@ -1,0 +1,551 @@
+
+## #import scipy as sp
+## #import matplotlib as mpl
+
+## #from scipy import integrate
+## from scipy.integrate import quad
+## #from scipy.integrate import quadrature
+## #from scipy.integrate import fixed_quad
+
+## from scipy import interpolate
+
+## from time import time, ctime
+
+## #from numpy import exp, pi, log, sin, cos, sqrt, abs
+## from math import exp, pi, log, log10, sin, cos, sqrt, fabs
+
+## import dis
+
+
+
+
+############################################################
+# Flags:
+############################################################
+
+#Test = True
+#Test = False
+#Plotting = True
+#Plotting = False
+
+
+############################################################
+# Default values:
+## #Mchi = 5000. # GeV
+#Mchi = 2000. # GeV
+## #Mchi = 40. # GeV
+## Eth = 250.     #GeV
+## #Eth = 10.     #GeV
+## #Eth = .1     #GeV
+## Jdeltaomega = 1.e18
+## FluxUL = 1.e-12
+alpha = 1./137.
+me = 511.e-6
+mmu = 105.7e-3
+
+
+############################################################
+
+# Data choice flag:
+
+if len(sys.argv)<3:
+    print 'Usage:\n', 
+    print 'python Exclusion.py [Sgr/Fnx Pt/Half/One]\n'
+    # or FnxPt or FnxHalf or FnxOne or FnxAnn or FnxStack] \n'
+    sys.exit()
+else:
+    objflag = sys.argv[1]
+    radflag = (sys.argv[2])
+    print 'objflag, ratflag = ', objflag, radflag, '\n'
+
+
+############################################################
+#
+# Modifications:
+
+# Fornax:
+if objflag == 'Fnx':
+    JbarNFW = np.array([[7.0, 15.0, 80.0],[0.5,0.6,3.2],[0.1,0.1,0.8]])
+    # (a6,a10,b1)x(0.1,0.5,1.0)
+    JbarBurk = np.array([[2.0,15.0,34.0],[0.5,0.6,3.2],[0.4,0.6,1.4]])
+    JbarBoost = np.array([[2.0,15.0,34.0],[0.5,0.6,3.2],[0.4,0.6,1.4]])
+    JbarHighBoost = np.array([[2.0,15.0,34.0],[0.5,0.6,3.2],[0.4,0.6,1.4]])
+    NUL = np.array([71.,227.,355.])
+    Eth = 260.     #GeV
+    Tobs = 11.3*3600.
+#print JbarNFW
+#print JbarBurk
+#print 'np.arange(3) = ', np.arange(3)
+#a = np.arange(3)
+#print 'a[0], a[1] = ', a[0], a[1]
+#print NUL
+
+else:
+    print 'Fornax only, so far ...'
+    sys.exit()
+
+#print '\n Check Jbars first?! \n'
+#sys.exit()
+
+############################################################
+
+# Set angle:
+if radflag == 'Pt':
+    NgammaUL = NUL[0]
+    radno =0
+elif radflag == 'Half':
+    NgammaUL = NUL[1]
+    radno =1
+elif radflag == 'One':
+    NgammaUL = NUL[2]
+    radno =2
+else:
+    print 'Please enter a valid radflag!\n'
+    sys.exit()
+
+# Set data set:  (change later ...)
+a6 = 0
+a10 = 1
+b1 = 2
+
+# Set Jbar:
+
+Jdeltaomega = 1.e16*JbarNFW[radno][a10]
+print 'Jdeltaomega = ', Jdeltaomega
+
+
+# Take Aeffs from table file:
+logE = []
+Aeffs = []
+
+file = open ("HBCalcEffArea.working", "r")
+#file = open ("HBCalcEffArea.halfdegree", "r")
+#file = open ("HBCalcEffArea_FromAion.out", "r")
+
+for line in file:
+#    print line[:-1]
+    textarray = line[:-1].split()
+    logE.append(np.float(textarray[0]))
+    Aeffs.append(np.float(textarray[1]))
+file.close()
+
+#print '\n',  logE, '\n'
+#print Aeffs, '\n'
+
+#data = np.genfromtxt("HBCalcEffArea.working") # macht Numpy-Array aus Datei?!
+#print "logE[0], logE[-1] = ", logE[0], logE[-1], '\n'
+
+
+# Make Aeff a function of E[GeV]:
+def Aeff(E):
+    E = E/1000. # from GeV to TeV
+    lgE = log10(E)
+    if (logE[0] < lgE < logE[-1]):
+        return float(interpolate.interp1d(logE,Aeffs)(lgE))
+    else:
+        return 0.
+
+# Show Aeff in a plot:
+#AeffPlot = []
+#for e in logE:
+#    AeffPlot.append(Aeff(1000.*10.**e))
+#plt.plot(logE, AeffPlot)
+#plt.show()
+
+
+# Integration of spectra and Aeffs:
+def BergIntAeff(mchi):
+    result = quad(lambda E: (Bergstrom1998(E,mchi)*Aeff(E)), 200., 1.1*mchi,
+                  limit=50,full_output=1)[0]
+#    def BergIntAeff(mchi):
+#    result = quad(lambda E: (BergstromSmoothed(E,mchi)*Aeff(E)), 200., 2.*mchi,
+#                  limit=50,full_output=1)[0]
+# 200 as Eth:  cf. Aeff file ...
+#
+#    result = quadrature(lambda E: (BergstromSmoothed(E,mchi)*Aeff(E)), 100., 2.*mchi,
+#                        vec_func=False)[0]
+#    result = quadrature(lambda E: (BergstromSmoothed(E,mchi)*Aeff(E)), 100., 2.*mchi,
+#                        vec_func=False)[0]
+    return result
+
+def BringIntAeff(mchi):
+    result = quad(lambda E: Bringmann2008(E,mchi)*Aeff(E), 200., 1.1*mchi,
+                  limit=50,full_output=1)[0]
+## def BergIntAeff(mchi):
+##     result = quad(lambda E: (BergstromSmoothed(E,mchi)*Aeff(E)), 200., 2.*mchi,
+##                   limit=50,full_output=1)[0]
+#    result = quadrature(lambda E: BringmannSmoothed(E,mchi)*Aeff(E), 100., 2.*mchi,
+#                        vec_func=False)[0]
+    return result
+
+def DGLAPIntAeff(mchi):
+    result = quad(lambda E: (DGLAP2009(E,mchi)*Aeff(E)), 200., 1.1*mchi,
+                  limit=50,full_output=1)[0]
+    return result
+
+def AeffIntegral(mchi):
+    result = quad(lambda E: Aeff(E), 100., 2.*mchi)[0]
+    return result
+
+# Exclusion calculation:
+    
+print "\nACHTUNG!! NgammaUL = %i" %NgammaUL
+print "ACHTUNG!! Tobs = %.1f h\n" %(Tobs/3600.)
+
+## if(dataflag=='FnxPt'):
+##     print "TEST:\n" \
+##           "Ngamma = Tobs*Int(Aeff*dndE)/Int(dndE) * Flux\n"\
+##           " = ", Tobs*(BergIntAeff(10000.)/BergInt(10000.))*FluxUL,\
+##           "\nfor mchi = 10000. \n"
+    
+
+def BergSigmavAeffUL(mchi):
+    result = 8.*pi*NgammaUL*mchi**2 / (Tobs*Jdeltaomega*BergIntAeff(mchi))
+    return result
+
+def BringSigmavAeffUL(mchi):
+    result = 8.*pi*NgammaUL*mchi**2 / (Tobs*Jdeltaomega*BringIntAeff(mchi))
+    return result
+
+def DGLAPSigmavAeffUL(mchi):
+    result = 8.*pi*NgammaUL*mchi**2 / (Tobs*Jdeltaomega*DGLAPIntAeff(mchi))
+    return result
+
+#print 'BergIntAeff(1000.) = ', BergIntAeff(1000.), '\n'
+#if(dataflag=='FnxPt'):
+#    print 'BergSigmavUL(1000.) = ', BergSigmavUL(1000.)
+print 'BergSigmavAeffUL(2000.) = ', BergSigmavAeffUL(2000.), '\n'
+#if(dataflag=='FnxPt'):
+#    print 'BringSigmavUL(1000.) = ', BringSigmavUL(1000.)
+print 'BringSigmavAeffUL(2000.) = ', BringSigmavAeffUL(2000.), '\n'
+print 'DGLAPSigmavAeffUL(2000.) = ', DGLAPSigmavAeffUL(2000.), '\n'
+
+
+#print 'SigmavUL(1000) = %.3e' % (SigmavUL(mchi))
+## print 'BergSigmavUL(mchi) = %.3e' % (BergSigmavUL(mchi))
+## print 'BringSigmavUL(mchi) = %.3e' % (BringSigmavUL(mchi))
+## print 'BergSigmavUL(1000.) = %.3e' % (BergSigmavUL(1000.))
+## print 'BringSigmavUL(1000.) = %.3e \n' % (BringSigmavUL(1000.))
+
+    
+############################################################
+#
+# Plotting:
+
+if Plotting==False:
+    sys.exit()
+
+PlotTime_i = time()
+print "\nStart plotting\n"
+mchi = 1000. # 5000.
+#e = np.arange(int(Eth)+1,int(1.5*mchi)+1,10)
+print '\nCHB: ACHTUNG! \n'
+#e = np.arange(int(Eth)+1,int(1.5*Mchi)+1,100)
+e = np.logspace(log10(Eth),5.,50)
+#e = np.logspace(log10(200.),5.,50)
+
+Berge = []
+Bringe = []
+DGLAPe = []
+BergS = []
+BringS = []
+Deltae = []
+BergUL = []
+BringUL = []
+BergAeffUL = []
+BringAeffUL = []
+DGLAPAeffUL = []
+DSe = []
+se = []
+Ge = []
+
+
+for i in e:
+#    if(dataflag=='FnxPt'):
+#        BergUL.append(BergSigmavUL(float(i)))
+#        BringUL.append(BringSigmavUL(float(i)))
+ 
+    ## Berg = BergSigmavAeffUL(float(i))
+    ## Bring = BringSigmavAeffUL(float(i))
+    ## DGLAP = DGLAPSigmavAeffUL(float(i))
+    ## BergAeffUL.append(Berg)
+    ## BringAeffUL.append(Bring)
+    ## DGLAPAeffUL.append(DGLAP)
+
+    BergAeffUL.append(BergSigmavAeffUL(float(i)))
+    BringAeffUL.append(BringSigmavAeffUL(float(i)))
+    DGLAPAeffUL.append(DGLAPSigmavAeffUL(float(i)))
+    
+# CHB Output:
+#    print 'i,Berg=', i, ' ', Berg
+#    print 'i,Bring=', i, ' ', Bring
+    
+#    Deltae.append(Delta(float(i),500.))
+#    DSe.append(DiffSpec(float(i)))
+#    se.append(float(i)**2 *s(float(i)))
+#    se.append(s(float(i)))
+#    Ge.append(Gauss(500.,float(i)))
+#    print 'B(%i) = %e' %(i,B(float(i)))
+
+# Plot Spectra:
+
+    ## Berge.append(float(i)**2 * Bergstrom1998(float(i), mchi))
+    ## Bringe.append(float(i)**2 * Bringmann2008(float(i), mchi))
+    ## DGLAPe.append(float(i)**2 * DGLAP2009(float(i), mchi))
+    ## BergS.append(float(i)**2 )#* BergstromSmoothed(float(i), mchi))
+    ## BringS.append(float(i)**2)# * BringmannSmoothed(float(i), mchi))
+
+## # (end of i loop)
+## fig1 = plt.figure(1)
+## ax1 = fig1.add_subplot(111)
+## ax1.set_yscale('log')
+## ax1.set_xscale('log')
+## plot1 = ax1.plot(e, Berge, e, Bringe, e, BergS, e, BringS, e, DGLAPe)
+## ax1.set_ylabel('E$^2$ dN/dE (a.u.?)')
+## ax1.set_xlabel('E (GeV)')
+## ax1.set_ylim(1e-2,1e3)
+## plt.legend(plot1, ('Bergstrom 1998 spectrum','Bringmann IB spectrum',
+##                     'Bergstrom smoothed', 'Bringmann smoothed','DGLAP splitting'),
+##             'lower left' )
+
+
+# Plot upper limits:
+fig2 = plt.figure(2)
+ax1 = fig2.add_subplot(111)
+ax1.set_yscale('log')
+ax1.set_xscale('log')
+#if(dataflag=='FnxPt'):
+#    plot2 = ax1.plot(e, BergAeffUL, e, BringAeffUL, e, BergUL, e, BringUL)
+#else:
+plot2 = ax1.plot(e, BergAeffUL, e, BringAeffUL,e, DGLAPAeffUL)#, e, BergUL, e, BringUL) 
+ax1.set_ylabel(r'<$\sigma$v> (cm$^{3}$/s), UL ')
+ax1.set_xlabel('E (GeV)')
+ax1.set_ylim(1e-26,1e-17)
+#if(dataflag=='FnxPt'):
+#    plt.legend(plot2, ('Bergstrom 1998 spectrum','Bringmann IB spectrum',
+#                       'Bergstrom w/o Aeffs', 'Bringmann  w/o Aeffs'),
+#               'lower right' )
+#else:
+plt.legend(plot2, ('Bergstrom 1998 spectrum','Bringmann IB spectrum',r'Bovy $\mu\mu$ spectrum')
+           , 'lower right' )  
+#plt.title('Using NGC 1399 UL(Ngamma)  and J(NFW)')
+plt.title('Fornax, 0.1 deg, NFW, no subs boost')
+
+## # Plot smoothing:
+## fig3 = plt.figure(3)
+## #ax1 = fig3.add_subplot(111)
+## ax2 = fig3.add_subplot(111)
+## plot3 = ax1.plot(e,Deltae)
+## #plot4 = ax2.semilogy(e,se)
+## plot4 = ax2.plot(e,se)
+## #plot5 = ax2.plot(e,DSe, ls=':',lw=2)
+## #plot6 = ax2.semilogy(e,Ge)
+## #plot6 = ax2.plot(e,Ge)
+
+#plt.legend((plot3,plot4,plot5,plot6),
+#           ('Deltae','se','DSe','Ge'), 'best')
+
+## plt.legend((plot3,plot4, plot6),
+##            ('DiffSpec','Smoothed', 'Gaussian'), 'best')
+
+PlotTime_f = time()
+
+PlotTime_tot = PlotTime_f - PlotTime_i
+print 'Plotting time = %.1f seconds' % PlotTime_tot
+
+plt.show()
+
+
+
+############################################################
+print '\nTHE END \n'
+
+
+############################################################
+#
+# Smoothing: (siehe Logbuch IV, S. 149)
+# (smoothing = convolution with Gaussian)
+#
+# Smoothing: not necessary if only Ngamma > Emin considered!
+
+
+#def DiffSpec(E):
+#    return Delta(float(E),500.)
+#    return Bergstrom1998(float(E),mchi)
+#    return Bringmann2008(float(E),mchi)
+
+def Gauss(Et,Er):
+    sigmaE = 0.15*Et
+    result = (1./(sqrt(2.*pi)*sigmaE))*exp(-0.5* ((Et-Er)/sigmaE)**2 )
+#    return 100.*result
+    return result
+
+NormGauss = quad(lambda e: Gauss(e,1000.), 0., 2000.)[0]
+#print 'NormGauss = %.3f \n' %  NormGauss
+
+#Et = 500.
+
+##def s(E_r):
+##    conv = quad(lambda E_t: (DiffSpec(E_t)*
+##                Gauss(E_t,E_r) ), 0., 2.*mchi)[0]
+##    return conv
+
+def BergstromSmoothed(E_r,mchi):
+    conv = quad(lambda E_t: (Bergstrom1998(E_t, mchi)*
+                             Gauss(E_t,E_r) ), 10., 2.*mchi)[0]
+    return conv
+
+def BringmannSmoothed(E_r,mchi):
+    conv = quad(lambda E_t: (Bringmann2008(E_t, mchi)*
+                             Gauss(E_t,E_r) ), 10.,2.*mchi)[0]
+##     conv = quadrature(lambda E_t: (Bringmann2008(E_t, mchi)*
+##                                    Gauss(E_t,E_r) ), 10.,2.*mchi,
+##                       tol=1.5e-6,vec_func=False)[0]
+#    print E_r, ' ' , conv
+    return conv
+
+if Test==True:
+    # CHB Testing integration, vectorized functions, etc.:
+    print '\nCHB Testing integration, vectorized functions, etc.:\n'
+    #vec_Bring = np.vectorize(Bringmann2008, otypes=[np.float])
+    #vec_Gauss = np.vectorize(Gauss, otypes=[np.float])
+    vec_Bring = np.frompyfunc(Bringmann2008, 2,1)
+    vec_Gauss = np.frompyfunc(Gauss,2,1)
+    
+    
+def BringmannSmoothedTest(E_r,mchi):
+    conv = fixed_quad(lambda E_t: (vec_Bring(E_t, mchi)*
+                                   vec_Gauss(E_t,E_r) ), 10.,2.*mchi)
+    #,                      tol=1.5e-6,vec_func=False)[0]
+    return conv
+
+## for e in range(0,1000,10):
+##     print e, s(float(e)), Gauss(500.,float(e))
+
+
+if Test==True:
+    sys.exit()
+
+## ############################################################
+## #
+## # Modifications:
+
+## #Sagittarius, NFW:
+## if(dataflag=='SgrPt'):
+##     Jdeltaomega = 44.e18
+##     FluxUL = 3.6e-12
+
+
+## # NGC 1399, NFW:
+## elif(dataflag=='FnxPtFlux'):
+##     Jdeltaomega = 1.5e17 * 11.
+##     FluxUL = 4.8e-12
+##     Eth = 264.
+
+## #NGC 1399, NFW, zweiter Versuch:
+## elif(dataflag=='FnxPt'):
+##     Jdeltaomega = 1.422e17 # NFW alone, no convolution
+## #    Jdeltaomega = 6.318e17 # NFW + Subs, medium boost, no convolution  
+##     FluxUL = 1.e-12             # 0.1 degrees
+##     Eth = 285.
+##     NgammaUL = 33.5
+##     Tobs = 13.6*3600.
+
+## #NGC 1399, NFW, zweiter Versuch:
+## elif(dataflag=='FnxHalf'):
+##     Jdeltaomega = 2.7e17        
+##     FluxUL = 4.e-13
+##     Eth = 285.
+##     NgammaUL = 33.5
+##     NgammaUL = 480.             # 1.0 degrees
+##     Tobs = 13.6*3600.
+    
+## #NGC 1399, NFW, zweiter Versuch:
+## elif(dataflag=='FnxOne'):   # 1.0 degrees
+##     Jdeltaomega =    1.564e+17 # NFW alone, no convolution
+## #    Jdeltaomega =   68.20e+17 # NFW + Subs, medium boost, no convolution
+## #    Jdeltaomega =  440.20e+17 # NFW + Subs, high boost, no convolution  
+##     FluxUL = 6.e-12             # 1.0 degrees
+##     Eth = 285.
+##     NgammaUL = 469.             # 1.0 degrees
+##     Tobs = 13.6*3600.
+
+## # NGC 1399, substructure-boosted, annulus:
+## elif(dataflag=='FnxAnn'):
+##     Jdeltaomega = 2.488e+17   # 1.0-0.9 degrees, 'low' boost
+##     Eth = 285.
+##     NgammaUL = 53.             # 1.0 degrees
+##     Tobs = 13.6*3600.
+
+## # Fornax, stacked ?!
+## elif(dataflag=='FnxStack'):
+## ##     Jdeltaomega = 8.1e+16 + 1.422e17   # Wo kamen nochmal diese Werte her?
+## ##     Eth = 300.
+##     Jdeltaomega = 20*6.5e17   # see log book V, page 73
+##     Eth = 300.
+##     NgammaUL = 192.7         # from Giovanna's ICRC 09
+##     Tobs = 74.7*3600.
+
+## else:
+##     print 'Please enter a valid data flag!\n'
+##     sys.exit()
+
+
+##  #Sagittarius, NFW:
+## if(dataflag=='SgrPt'):
+##     Jdeltaomega = 44.e18
+##     FluxUL = 3.6e-12
+
+## # NGC 1399, NFW:
+## elif(dataflag=='FnxPtFlux'):
+##     Jdeltaomega = 1.5e17 * 11.
+##     FluxUL = 4.8e-12
+##     Eth = 264.
+
+## #NGC 1399, NFW, zweiter Versuch:
+## elif(dataflag=='FnxPt'):
+##     Jdeltaomega = 1.422e17 # NFW alone, no convolution
+## #    Jdeltaomega = 6.318e17 # NFW + Subs, medium boost, no convolution  
+##     FluxUL = 1.e-12             # 0.1 degrees
+##     Eth = 285.
+##     NgammaUL = 33.5
+##     Tobs = 13.6*3600.
+
+## #NGC 1399, NFW, zweiter Versuch:
+## elif(dataflag=='FnxHalf'):
+##     Jdeltaomega = 2.7e17        
+##     FluxUL = 4.e-13
+##     Eth = 285.
+##     NgammaUL = 33.5
+##     NgammaUL = 480.             # 1.0 degrees
+##     Tobs = 13.6*3600.
+    
+## #NGC 1399, NFW, zweiter Versuch:
+## elif(dataflag=='FnxOne'):   # 1.0 degrees
+##     Jdeltaomega =    1.564e+17 # NFW alone, no convolution
+## #    Jdeltaomega =   68.20e+17 # NFW + Subs, medium boost, no convolution
+## #    Jdeltaomega =  440.20e+17 # NFW + Subs, high boost, no convolution  
+##     FluxUL = 6.e-12             # 1.0 degrees
+##     Eth = 285.
+##     NgammaUL = 469.             # 1.0 degrees
+##     Tobs = 13.6*3600.
+
+## # NGC 1399, substructure-boosted, annulus:
+## elif(dataflag=='FnxAnn'):
+##     Jdeltaomega = 2.488e+17   # 1.0-0.9 degrees, 'low' boost
+##     Eth = 285.
+##     NgammaUL = 53.             # 1.0 degrees
+##     Tobs = 13.6*3600.
+
+## # Fornax, stacked ?!
+## elif(dataflag=='FnxStack'):
+## ##     Jdeltaomega = 8.1e+16 + 1.422e17   # Wo kamen nochmal diese Werte her?
+## ##     Eth = 300.
+##     Jdeltaomega = 20*6.5e17   # see log book V, page 73
+##     Eth = 300.
+##     NgammaUL = 192.7         # from Giovanna's ICRC 09
+##     Tobs = 74.7*3600.
+
+## else:
+##     print 'Please enter a valid data flag!\n'
+##     sys.exit()

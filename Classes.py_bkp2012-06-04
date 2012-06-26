@@ -3,7 +3,7 @@ from math import pi, exp
 from scipy.integrate import quad
 from scipy import interpolate
 import numpy as np
-import fnmatch
+
 
 class Object(object):
     """This class is supposed to hold the different \"objects\", i.e. 
@@ -11,33 +11,23 @@ class Object(object):
     astrophysical object, and the formulae to calculate upper limits
     from their results."""
     
-    def __init__(self, Name, Aeff, Tobs, Jbar,Nul):
+    def __init__(self, name, aeff, tobs, jbar,nul):
         """ Initializes \"object\", including some specific object modifications."""
-        print "\nHallo", Name
-        self.Name = Name
+        print "\nHallo", name
+        self.Name = name
         self.Eth = 30.
-        self.Aeffdata = np.genfromtxt(Aeff)
+        self.Aeffdata = np.genfromtxt(aeff)
         # Consider all energies in GeV, all Aeffs in cm**2:
-#        if self.Name=="Segue1V*" or self.Name=="Willman1V":
-        if fnmatch.fnmatch(self.Name,'Segue1V*') or self.Name=="Willman1V":
-            print "HalloHallo!"
-            print self.Name
-#            pass
-#            self.Eth = 300.
-        else:
+        if not (self.Name==("Segue1V" or "Willman1V")):
             self.Aeffdata[:,1]*=1e4 
             if self.Name == "Segue1M":
                 self.Aeffdata[:,1]*=100. # Factor 100 in MAGIC Aeff table
                 self.Eth = 100.
-            elif fnmatch.fnmatch(self.Name,'Scu*'):
-                #self.Aeffdata[:,1]*=0.8 # Fudge efficiency factor
+            elif self.Name == "Sculptor" or "Sgr": # Works! :)
                 self.Aeffdata[:,0]*=1000. # TeV to GeV
-                self.Eth = 200.
-            else:
-                self.Aeffdata[:,0]*=1000. # TeV to GeV
-        self.Tobs = Tobs*3600.
-        self.Jbar = Jbar
-        self.Nul = Nul
+        self.Tobs = tobs*3600.
+        self.Jbar = jbar
+        self.Nul = nul
                 
     def printObject(self):
         """ Prints object, just for testing. """
@@ -79,7 +69,6 @@ class Object(object):
                                   self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
         return result
 
-    
     
 class Pub(object):
     """This class holds the actual limits from publications."""
