@@ -4,6 +4,7 @@ from scipy.integrate import quad
 from scipy import interpolate
 import numpy as np
 import fnmatch
+from Limits import UpperLimit
 
 class Object(object):
     """This class is supposed to hold the different \"objects\", i.e. 
@@ -11,42 +12,47 @@ class Object(object):
     astrophysical object, and the formulae to calculate upper limits
     from their results."""
     
-    def __init__(self, Name, Aeff, Tobs, Jbar,Nul):
+    def __init__(self, Name, Aeff, Tobs, Jbar, Non, Noff, alpha):
         """ Initializes \"object\", including some specific object modifications."""
-        print "\nHallo", Name
+        #        print "\nHallo", Name
         self.Name = Name
         self.Eth = 30.
+        if Name=="Segue1M":
+            self.Eth=100.
+        elif fnmatch.fnmatch(self.Name,'Scu*'):
+            self.Eth=200. #Sculptor fudge factor. Carina?!
+
         self.Aeffdata = np.genfromtxt(Aeff)
         # Consider all energies in GeV, all Aeffs in cm**2:
-#        if self.Name=="Segue1V*" or self.Name=="Willman1V":
-        if fnmatch.fnmatch(self.Name,'Segue1V*') or self.Name=="Willman1V":
-            print "HalloHallo!"
-            print self.Name
-#            pass
-#            self.Eth = 300.
+        if Aeff=="Aeffs/VERITAS-Aeff_20deg.dat":
+            pass
+        elif Aeff=="Aeffs/MAGIC_Gaug_Aeff.dat":
+            self.Aeffdata[:,1]*=100. # Factor 100 in MAGIC Aeff table
+            self.Aeffdata[:,1]*=1e4  # m^2 to cm^2
+            self.Eth = 100.
         else:
-            self.Aeffdata[:,1]*=1e4 
-            if self.Name == "Segue1M":
-                self.Aeffdata[:,1]*=100. # Factor 100 in MAGIC Aeff table
-                self.Eth = 100.
-            elif fnmatch.fnmatch(self.Name,'Scu*'):
+            self.Aeffdata[:,1]*=1e4 # m^2 to cm^2
+            if Aeff!="Aeffs/VERITAS_Segue1_Aeff_TrueE.dat":
+                self.Aeffdata[:,0]*=1000. # TeV to GeV
+            #elif fnmatch.fnmatch(self.Name,'Scu*'):
                 #self.Aeffdata[:,1]*=0.8 # Fudge efficiency factor
-                self.Aeffdata[:,0]*=1000. # TeV to GeV
-                self.Eth = 200.
-            else:
-                self.Aeffdata[:,0]*=1000. # TeV to GeV
+
         self.Tobs = Tobs*3600.
         self.Jbar = Jbar
-        self.Nul = Nul
+        self.Non = Non
+        self.Noff = Noff
+        self.alpha = alpha
+        self.Nul = float(UpperLimit(self.Non, self.Noff, self.alpha))
                 
     def printObject(self):
         """ Prints object, just for testing. """
+        print
         print self.Name
         print self.Tobs, ", Tobs in sec"
         print self.Jbar, "GeV^2 cm^-5"
-        print self.Nul, ", Nul at some CL"
+        print self.Nul, ", Nul at 95% CL"
         print self.Aeffdata[0,0], ", Emin(Aeff) in GeV"
-
+        print
 
     def Aeff(self,Energy):
         """ Aeff function from the Aeffdata stored in each object."""
