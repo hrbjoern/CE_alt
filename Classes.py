@@ -1,7 +1,9 @@
-from PhotonSpectra import *
+#from PhotonSpectra import *
+import PhotonSpectra
 from math import pi, exp
 from scipy.integrate import quad
 from scipy import interpolate
+from scipy.stats import poisson
 import numpy as np
 import fnmatch
 from Limits import UpperLimit
@@ -12,7 +14,7 @@ class Object(object):
     astrophysical object, and the formulae to calculate upper limits
     from their results."""
     
-    def __init__(self, Name, Aeff, Tobs, Jbar, Non, Noff, alpha):
+    def __init__(self, Name, Aeff, Tobs, Jbar, Non, Noff, alpha, spectrum):
         """ Initializes \"object\", including some specific object modifications."""
         #        print "\nHallo", Name
         self.Name = Name
@@ -42,7 +44,13 @@ class Object(object):
         self.Non = Non
         self.Noff = Noff
         self.alpha = alpha
+        #TRolke calculation:
         self.Nul = float(UpperLimit(self.Non, self.Noff, self.alpha))
+        # Get spectrum function:
+        # self.Spectrum = eval("PhotonSpectra."+spectrum) # works, but 
+        self.Spectrum = getattr(PhotonSpectra, spectrum)  # seems better
+        print self.Spectrum
+        print type(self.Spectrum)
                 
     def printObject(self):
         """ Prints object, just for testing. """
@@ -61,30 +69,55 @@ class Object(object):
         else:
             return 0.
 
-    def ULsigmav_tautau(self,mchi):
-        """ Calculates UL on sigmav with a Cembranos tautau spectrum."""
-        prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
-#        result = prefactor / quad(lambda E: (Bergstrom1998(E,mchi)*self.Aeff(E)),
-#                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
-        result = prefactor / quad(lambda E: (tautau(E,mchi)*self.Aeff(E)),
-                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
-#        return np.minimum(result,1.)
-        return result
+##     def ULsigmav_tautau(self,mchi):
+##         """ Calculates UL on sigmav with a Cembranos tautau spectrum."""
+##         prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
+## #        result = prefactor / quad(lambda E: (Bergstrom1998(E,mchi)*self.Aeff(E)),
+## #                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
+##         result = prefactor / quad(lambda E: (tautau(E,mchi)*self.Aeff(E)),
+##                                   self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
+## #        return np.minimum(result,1.)
+##         return result
     
-    def ULsigmav_bbbar(self,mchi):
-        """ Calculates UL on sigmav with a Cembranos bbbar spectrum."""
-        prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
-        result = prefactor / quad(lambda E: (bbbar(E,mchi)*self.Aeff(E)),
-                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
-        return result     
+##     def ULsigmav_bbbar(self,mchi):
+##         """ Calculates UL on sigmav with a Cembranos bbbar spectrum."""
+##         prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
+##         result = prefactor / quad(lambda E: (bbbar(E,mchi)*self.Aeff(E)),
+##                                   self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
+##         return result     
     
-    def ULsigmav_WW(self,mchi):
-        """ Calculates UL on sigmav with a standard Bergstrom spectrum."""
-        prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
-        result = prefactor / quad(lambda E: (Bergstrom1998(E,mchi)*self.Aeff(E)),
-                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
-        return result
+##     def ULsigmav_WW(self,mchi):
+##         """ Calculates UL on sigmav with a standard Bergstrom spectrum."""
+##         prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
+##         result = prefactor / quad(lambda E: (Bergstrom1998(E,mchi)*self.Aeff(E)),
+##                                   self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
+##         return result
 
+    def ULsigmav(self,mchi):
+        """ Calculates UL on sigmav with the object's member spectrum."""
+        prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
+        result = prefactor / quad(lambda E: (self.Spectrum(E,mchi)*self.Aeff(E)),
+                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
+        return result 
+
+    # MOST important:
+    def logLhood(self, sigmav, mchi):
+        """Most important! This is each object's log likelihood function.
+
+        Note: The data parameters Non, Noff, alpha are class members - hence they 
+        need not be called as function parameters!
+        Poissonian PMF: poisson.pmf(k,mu) = exp(-mu) * mu**k / k!
+        """
+        Ns = ((sigmav / 8.*pi*mchi**2) * self.Tobs * self.Jbar *
+              quad(lambda E: self.Spectrum(E,mchi)*self.Aeff(E), # ACHTUNG! Spektrum als Member?!
+                   self.Eth, 1.01*mchi,limit=50,full_output=1)[0])
+        # Integral RAUS aus Funktionsdefinition?
+        
+        # Use log PMF for faster calculation:
+        logPois1 = poisson.logpmf(self.Non, (Ns+self.alpha*self.Noff))
+        logPois2 = poisson.logpmf(self.Noff, self.Noff)
+        #return log(Pois1*Pois2)
+        return logPois1+logPois2
     
     
 class Pub(object):

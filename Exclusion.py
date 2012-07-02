@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import cPickle as pickle
 from math import pi
 from scipy.integrate import quad
+from scipy.optimize import fmin
 
 from Classes import Object, Pub
 import PhotonSpectra
@@ -37,7 +38,8 @@ Segue1M = Object("Segue1M", "Aeffs/MAGIC_Gaug_Aeff.dat",
                  Jbar=1.14e19,
                  Non=52978,
                  Noff=53301,
-                 alpha=1.0)
+                 alpha=1.0,
+                 spectrum="bbbar")
 Segue1M.printObject()
 
 Segue1V = Object("Segue1V","Aeffs/VERITAS_Segue1_Aeff_TrueE.dat", #"Aeffs/VERITAS-Aeff_20deg.dat",
@@ -45,15 +47,17 @@ Segue1V = Object("Segue1V","Aeffs/VERITAS_Segue1_Aeff_TrueE.dat", #"Aeffs/VERITA
                  Jbar=7.7e18,
                  Non=1082,
                  Noff=12479,
-                 alpha=0.084)
+                 alpha=0.084,
+                 spectrum="bbbar")
 Segue1V.printObject()
 
-Segue1V_tautau = Object("Segue1V_tautau","Aeffs/VERITAS_Segue1_Aeff_TrueE.dat", #"Aeffs/VERITAS-Aeff_20deg.dat",
+Segue1V_tautau = Object("Segue1V-tautau","Aeffs/VERITAS_Segue1_Aeff_TrueE.dat", #"Aeffs/VERITAS-Aeff_20deg.dat",
                         Tobs=47.8,
                         Jbar=7.7e18,
                         Non=1082,
                         Noff=12479,
-                        alpha=0.084)
+                        alpha=0.084,
+                        spectrum="tautau")
 Segue1V.printObject()
 
 SculptorIso = Object("SculptorIso","Aeffs/HESS_Aeffs_Crab_20deg.dat",
@@ -61,7 +65,8 @@ SculptorIso = Object("SculptorIso","Aeffs/HESS_Aeffs_Crab_20deg.dat",
                      Jbar=2.9e17,
                      Non=117,
                      Noff=2283,
-                     alpha=0.04)
+                     alpha=0.04,
+                     spectrum="bbbar")
 SculptorIso.printObject()
 
 SculptorNFW = Object("SculptorNFW","Aeffs/HESS_Aeffs_Crab_20deg.dat",
@@ -69,7 +74,8 @@ SculptorNFW = Object("SculptorNFW","Aeffs/HESS_Aeffs_Crab_20deg.dat",
                      Jbar=2.9e17,
                      Non=117,
                      Noff=2283,
-                     alpha=0.04)                    
+                     alpha=0.04,
+                     spectrum="bbbar")                    
 SculptorNFW.printObject()
 
 Sgr = Object("Sgr","Aeffs/HESS_Aeffs_Crab_20deg.dat",
@@ -77,7 +83,8 @@ Sgr = Object("Sgr","Aeffs/HESS_Aeffs_Crab_20deg.dat",
              Jbar=1e18,
              Non=437,
              Noff=4270,
-             alpha=(1./10.1))
+             alpha=(1./10.1),
+             spectrum="bbbar")
 Sgr.printObject()
 
 Willman1V = Object("Willman1V", "Aeffs/VERITAS-Aeff_20deg.dat",
@@ -85,7 +92,8 @@ Willman1V = Object("Willman1V", "Aeffs/VERITAS-Aeff_20deg.dat",
                    Jbar=84.3e17,
                    Non=326,
                    Noff=3602,
-                   alpha=(1./11.))
+                   alpha=(1./11.),
+                   spectrum="bbbar")
 Willman1V.printObject()
 
 ObjList = (Segue1M, Segue1V, Segue1V_tautau, SculptorIso, Willman1V, Sgr)
@@ -104,8 +112,27 @@ print '\nenergy steps =', esteps
 print
 energies = np.logspace(2,5,esteps)
 
-# EVEN MORE important: Combined upper limit(s).
-UL_bbbar = []
+
+# Calculate individual upper limits for different spectra:
+for o in ObjList:
+    #    o.ul_tautau=[]
+    #    o.ul_bbbar=[]
+    #    o.ul_WW=[]
+    o.ul = []
+    for mchi in energies:
+        o.ul.append(o.ULsigmav(mchi))
+        ## o.ul_tautau.append(o.ULsigmav_tautau(mchi))
+        ## o.ul_bbbar.append(o.ULsigmav_bbbar(mchi))
+        ## o.ul_WW.append(o.ULsigmav_WW(mchi))
+
+
+
+
+########################################################
+# "Simple" Combination of the limits:
+########################################################
+
+UL_bbbarComb = []
 
 SumOfTobsTimesJbar = 0.
 SumOfNul = 0.
@@ -116,7 +143,7 @@ SumOfAlphaNoff = 0.
 
 CombinationList = (Segue1M, Segue1V, SculptorIso, Willman1V,Sgr)
 #CombinationList = (Segue1M, Segue1V, SculptorIso, Willman1V)
-CombinationList = (Segue1V, Segue1V, Segue1V, Segue1V)
+#CombinationList = (Segue1V, Segue1V, Segue1V, Segue1V)
 #CombinationList = (Segue1M, Segue1M)
 
 for o in CombinationList:
@@ -153,29 +180,36 @@ def IntegrandSum(E):
 
 
 for mchi in energies:
-    UL_bbbar.append(8.*pi*mchi**2*SumOfNulbar/
+    UL_bbbarComb.append(8.*pi*mchi**2*SumOfNulbar/
                     quad(lambda E: (PhotonSpectra.bbbar(E,mchi)*IntegrandSum(E)),
                          30., 1.01*mchi, limit=50,full_output=1)[0])
+    # Testing:
+    #for o in ObjList:
+    #    print 'logLikelihood(sigmav=0, mchi) = ', o.logLhood(0., mchi)
 
-## print
-## print 'UL_bbbar = ', UL_bbbar
-## print
 
-CombList = (UL_bbbar)
+########################################################
+# "Likelihood" Combination of the limits:
+########################################################
+# (still needs "CombinationList" from above)
+
+def ComblogLhood(sigmav, mchi):
+    """ Combined log likelihood. THE master function."""
+    rv = []
+    for o in CombinationList:
+        rv.append(o.logLhood(sigmav, mchi))
+    return -sum(rv)
+
+print '\nComblogLhood(0., 1000.) = %f \n' % ComblogLhood(0., 1000.)
+
+# preliminary maximization:
+CLmax = fmin(ComblogLhood, 10., args=[1000.])
+print 'CLmax = ', CLmax
+
+# List of combined limits: Add more later!
+CombList = (UL_bbbarComb)
 
 #sys.exit()
-
-# Calculate individual upper limits for different spectra:
-for o in ObjList:
-    o.ul_tautau=[]
-    o.ul_bbbar=[]
-    o.ul_WW=[]
-    for mchi in energies:
-        o.ul_tautau.append(o.ULsigmav_tautau(mchi))
-        o.ul_bbbar.append(o.ULsigmav_bbbar(mchi))
-        o.ul_WW.append(o.ULsigmav_WW(mchi))
-
-
 
 
 ########################################################
@@ -219,6 +253,7 @@ pickle.dump(CombList, open('saveComb.p', 'wb'))
 # Plot stuff:
 ########################################################
 
+print 'Start plotting: '
 #Plotting.plotAeffs()
 Plotting.plotObjects()
     

@@ -30,16 +30,17 @@ def plotObjects():
     
     #Plot stuff:
     for o in ObjList:
-        if o.Name=="SculptorIso":
-            ax1.plot(energies,o.ul_WW,label=o.Name)
-            #print o.Aeffdata
-        elif o.Name=="Segue1V_tautau":
-            ax1.plot(energies,o.ul_tautau,label=r"Segue1Vtautau")
-        else:
-            ax1.plot(energies,o.ul_bbbar,label=o.Name)
-            #if o.Name=="Willman1V":
-                #print o.ul_bbbar
-                #print o.Aeffdata
+        ax1.plot(energies,o.ul,label=o.Name)
+        ## if o.Name=="SculptorIso":
+        ##     ax1.plot(energies,o.ul_WW,label=o.Name)
+        ##     #print o.Aeffdata
+        ## elif o.Name=="Segue1V_tautau":
+        ##     ax1.plot(energies,o.ul_tautau,label=r"Segue1Vtautau")
+        ## else:
+        ##     ax1.plot(energies,o.ul_bbbar,label=o.Name)
+        ##     #if o.Name=="Willman1V":
+        ##         #print o.ul_bbbar
+        ##         #print o.Aeffdata
 
     ## for o in PubList:
     ##     ax1.plot(o[:,0],o[:,1])
