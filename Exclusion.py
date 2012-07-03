@@ -198,13 +198,19 @@ def ComblogLhood(sigmav, mchi):
     rv = []
     for o in CombinationList:
         rv.append(o.logLhood(sigmav, mchi))
+        #print 'o.logLhood = ', o.logLhood(sigmav, mchi)
     return -sum(rv)
 
-print '\nComblogLhood(0., 1000.) = %f \n' % ComblogLhood(0., 1000.)
+#print '\nComblogLhood(1e-23, 1000.) = %f \n' % ComblogLhood(1e-23, 1000.)
+#for mchi in energies:
+#    print '\nComblogLhood(1e-23, %.1f) = %f \n' % (mchi, ComblogLhood(1e-23, mchi))
+
+for s in range(-35,-20):
+    print '\nComblogLhood(%.2e, 1000.) = %f \n' % (10**s, ComblogLhood(10**s, 1000.))
 
 # preliminary maximization:
-CLmax = fmin(ComblogLhood, 10., args=[1000.])
-print 'CLmax = ', CLmax
+#CLmax = fmin(ComblogLhood, 10., args=[1000.])
+#print 'CLmax = ', CLmax
 
 # List of combined limits: Add more later!
 CombList = (UL_bbbarComb)
@@ -255,7 +261,7 @@ pickle.dump(CombList, open('saveComb.p', 'wb'))
 
 print 'Start plotting: '
 #Plotting.plotAeffs()
-Plotting.plotObjects()
+#Plotting.plotObjects()
     
 
 print "\nund tschuess \n"

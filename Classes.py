@@ -105,17 +105,19 @@ class Object(object):
         """Most important! This is each object's log likelihood function.
 
         Note: The data parameters Non, Noff, alpha are class members - hence they 
-        need not be called as function parameters!
+        need not be called as function parameters.
         Poissonian PMF: poisson.pmf(k,mu) = exp(-mu) * mu**k / k!
         """
-        Ns = ((sigmav / 8.*pi*mchi**2) * self.Tobs * self.Jbar *
-              quad(lambda E: self.Spectrum(E,mchi)*self.Aeff(E), # ACHTUNG! Spektrum als Member?!
+        Ns = ((sigmav / (8.*pi*mchi**2)) * self.Tobs * self.Jbar *
+              quad(lambda E: self.Spectrum(E,mchi)*self.Aeff(E), 
                    self.Eth, 1.01*mchi,limit=50,full_output=1)[0])
         # Integral RAUS aus Funktionsdefinition?
-        
+        #print 'logLhood: Ns = ', Ns
         # Use log PMF for faster calculation:
         logPois1 = poisson.logpmf(self.Non, (Ns+self.alpha*self.Noff))
+        #print 'logLhood: logPois1 = ', logPois1
         logPois2 = poisson.logpmf(self.Noff, self.Noff)
+        #print 'logLhood: logPois2 = ', logPois2
         #return log(Pois1*Pois2)
         return logPois1+logPois2
     
