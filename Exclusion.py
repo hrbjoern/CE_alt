@@ -14,9 +14,13 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import cPickle as pickle
+#import timeit
+import time
+
 from math import pi
 from scipy.integrate import quad
 from scipy.optimize import fmin
+from pprint import pprint
 
 from Classes import Object, Pub
 import PhotonSpectra
@@ -108,24 +112,38 @@ try:
     esteps = int(sys.argv[1])
 except:
     esteps = 100
-print '\nenergy steps =', esteps
+print '\n # energy steps =', esteps
 print
-energies = np.logspace(2,5,esteps)
+mchis = np.logspace(2,5,esteps)
+
+## # TESTING:
+## print 'Sensi(mchis): '
+## for o in ObjList:
+##     #o.Sensi = np.vectorize(o.Sensi_scalar)
+##     #pprint (o.Sensi(mchis))
+##     pprint (o.Sensi_v(mchis))
+## sys.exit()
 
 
-# Calculate individual upper limits for different spectra:
+# Calculate individual upper limits:
 for o in ObjList:
-    #    o.ul_tautau=[]
-    #    o.ul_bbbar=[]
-    #    o.ul_WW=[]
     o.ul = []
-    for mchi in energies:
+    for mchi in mchis:
         o.ul.append(o.ULsigmav(mchi))
-        ## o.ul_tautau.append(o.ULsigmav_tautau(mchi))
-        ## o.ul_bbbar.append(o.ULsigmav_bbbar(mchi))
-        ## o.ul_WW.append(o.ULsigmav_WW(mchi))
+        ## o.ul_tautau.append(o.ULsigmav_tautau(mchi)) ... deprecated ;)
 
+    #o.ul2 = (np.vectorize(o.ULsigmav))(mchis) #... funktioniert leider nicht
+    #o.ul2 = o.ULsigmav(mchis)
+    #pprint(o.ul2)
+    # pprint (vars(o)) # Tolltolltoll!!! :)
 
+# Add sensitivity curve S(E) to all objects
+# - but only for selected masses!
+
+#for o in ObjList:
+#    def o.S(E)
+    
+    
 
 
 ########################################################
@@ -142,6 +160,8 @@ SumOfNoff = 0.
 SumOfAlphaNoff = 0.
 
 CombinationList = (Segue1M, Segue1V, SculptorIso, Willman1V,Sgr)
+#CombinationList = np.array([Segue1M, Segue1V, SculptorIso, Willman1V,Sgr], dtype=np.object)
+# ... doesnt make a difference.
 #CombinationList = (Segue1M, Segue1V, SculptorIso, Willman1V)
 #CombinationList = (Segue1V, Segue1V, Segue1V, Segue1V)
 #CombinationList = (Segue1M, Segue1M)
@@ -151,6 +171,7 @@ for o in CombinationList:
      SumOfNon += o.Non
      SumOfNoff += o.Noff
      SumOfAlphaNoff += o.alpha*o.Noff
+
 
 # Calculate "mean" alpha:
 alphabar = SumOfAlphaNoff / SumOfNoff
@@ -164,58 +185,99 @@ print 'alphabar = ', alphabar
 print 'SumOfNul = ', SumOfNul
 print 'SumOfSignal = ', SumOfSignal
 
-# Calculate "mean" total upper limit:
+# Calculate "mean" total upper limit of photons:
 SumOfNulbar = Limits.UpperLimit(int(SumOfNon), int(SumOfNoff), alphabar)
 print 'SumOfNulbar = ', SumOfNulbar
 
-#sys.exit()
-    
+
+# Calculate "mean" total upper limit on sigmav:
 def IntegrandSum(E):
     soa = 0.
     for o in CombinationList:
         soa += o.Tobs*o.Jbar*o.Aeff(E)
     return soa
 
-#SumOfStuff = SumOfNul/SumOfTobsTimesJbar
+## UL_bbbarComb = [] # ... unnecessary! See array-ified version below.
+## for mchi in mchis:
+##     UL_bbbarComb.append(8.*pi*mchi**2*SumOfNulbar/
+##                     quad(lambda E: (PhotonSpectra.bbbar(E,mchi)*IntegrandSum(E)),
+##                          30., 1.01*mchi, limit=50,full_output=1)[0])
+##     # Testing:
+##     #for o in ObjList:
+##     #    print 'logLikelihood(sigmav=0, mchi) = ', o.logLhood(0., mchi)
+
+# Vectorize the integration:
+def integral(mchi):
+    return quad(lambda E: (PhotonSpectra.bbbar(E,mchi)*IntegrandSum(E)),
+                30., 1.01*mchi, limit=50,full_output=1)[0]
+
+vec_integral = np.vectorize(integral)
+
+# Array-ify the calculation: works! :) Replaces "for mchi in mchis". 
+UL_bbbarComb = (8.*pi*mchis**2*SumOfNulbar/ vec_integral(mchis) )
 
 
-for mchi in energies:
-    UL_bbbarComb.append(8.*pi*mchi**2*SumOfNulbar/
-                    quad(lambda E: (PhotonSpectra.bbbar(E,mchi)*IntegrandSum(E)),
-                         30., 1.01*mchi, limit=50,full_output=1)[0])
-    # Testing:
-    #for o in ObjList:
-    #    print 'logLikelihood(sigmav=0, mchi) = ', o.logLhood(0., mchi)
+
+#print 'UL_bbbarComb = ', UL_bbbarComb
 
 
 ########################################################
 # "Likelihood" Combination of the limits:
 ########################################################
 # (still needs "CombinationList" from above)
+print '\nStart Combination: \n'
 
 def ComblogLhood(sigmav, mchi):
     """ Combined log likelihood. THE master function."""
-    rv = []
-    for o in CombinationList:
-        rv.append(o.logLhood(sigmav, mchi))
-        #print 'o.logLhood = ', o.logLhood(sigmav, mchi)
-    return -sum(rv)
-
-#print '\nComblogLhood(1e-23, 1000.) = %f \n' % ComblogLhood(1e-23, 1000.)
-#for mchi in energies:
-#    print '\nComblogLhood(1e-23, %.1f) = %f \n' % (mchi, ComblogLhood(1e-23, mchi))
-
-for s in range(-35,-20):
-    print '\nComblogLhood(%.2e, 1000.) = %f \n' % (10**s, ComblogLhood(10**s, 1000.))
+    return -sum(o.logLhood(sigmav, mchi) for o in CombinationList)
 
 # preliminary maximization:
 #CLmax = fmin(ComblogLhood, 10., args=[1000.])
 #print 'CLmax = ', CLmax
 
+# Timing test:
+class Timer():
+   def __enter__(self): self.start = time.time()
+   def __exit__(self, *args): print time.time() - self.start
+
+print 'CL calling time: '
+with Timer():
+    ComblogLhood(1e-22, 1000.)
+print 
+    
+#t = timeit.Timer('ComblogLhood(1e-22, 1000.)', "from __main__ import ComblogLhood")
+#print '\n time it:', t.timeit()
+#sys.exit()
+
+# LEFTOVER: move elsewhere!
 # List of combined limits: Add more later!
 CombList = (UL_bbbarComb)
 
-#sys.exit()
+
+# Vectorize the comb. lhood function? Yes!
+CL_vec = np.vectorize(ComblogLhood)
+
+# np.array for sigmav values: (over which to interpolate?)
+sigmav_steps = esteps # for the moment
+sigmavs = np.logspace(-26, -20, sigmav_steps)
+print 'sigmavs = ', sigmavs
+
+# 2D-valued array of sigmavs and mchis: Works! :)
+sv, mv = np.meshgrid(sigmavs, mchis)
+
+# Resulting array of CL values
+print '\n\n CL-Array = CL_vec(sigmavs, mchis):'
+#CLArray = CL_vec(sv, mv)
+#print CLArray
+
+
+print '\nCL Array calling time: '
+with Timer():
+    CL_vec(sv, mv)
+
+
+
+sys.exit()
 
 
 ########################################################
@@ -247,7 +309,7 @@ PubList = (Segue1M_bb, Segue1V_bb, Segue1V_tautau, Sculptor_IsoWW, Willman1V_bb)
 print 'Start pickling:'
 print
 
-pickle.dump(energies, open('saveE.p','wb'))
+pickle.dump(mchis, open('saveE.p','wb'))
 ## for i in ObjList:
 ##     i.printObject()
 ##     print
@@ -261,7 +323,7 @@ pickle.dump(CombList, open('saveComb.p', 'wb'))
 
 print 'Start plotting: '
 #Plotting.plotAeffs()
-#Plotting.plotObjects()
+Plotting.plotObjects()
     
 
 print "\nund tschuess \n"

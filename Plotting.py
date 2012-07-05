@@ -13,7 +13,7 @@ from scipy.integrate import quad
 def plotObjects():
     """Plot all the objects coming from ..?"""
     # Open pickle files:
-    energies = pickle.load(open('saveE.p'))
+    mchis = pickle.load(open('saveE.p'))
     ObjList = pickle.load(open('saveObj.p'))
 
     # Prepare plot:
@@ -30,14 +30,14 @@ def plotObjects():
     
     #Plot stuff:
     for o in ObjList:
-        ax1.plot(energies,o.ul,label=o.Name)
+        ax1.plot(mchis,o.ul,label=o.Name)
         ## if o.Name=="SculptorIso":
-        ##     ax1.plot(energies,o.ul_WW,label=o.Name)
+        ##     ax1.plot(mchis,o.ul_WW,label=o.Name)
         ##     #print o.Aeffdata
         ## elif o.Name=="Segue1V_tautau":
-        ##     ax1.plot(energies,o.ul_tautau,label=r"Segue1Vtautau")
+        ##     ax1.plot(mchis,o.ul_tautau,label=r"Segue1Vtautau")
         ## else:
-        ##     ax1.plot(energies,o.ul_bbbar,label=o.Name)
+        ##     ax1.plot(mchis,o.ul_bbbar,label=o.Name)
         ##     #if o.Name=="Willman1V":
         ##         #print o.ul_bbbar
         ##         #print o.Aeffdata
@@ -81,7 +81,7 @@ def plotPubs():
     
     # Plot stuff:
     for p in PubList:
-        ax1.plot(p.energies, p.ul, label=p.legend, linestyle='dashed')
+        ax1.plot(p.mchis, p.ul, label=p.legend, linestyle='dashed')
 
     plt.legend(loc=4,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
 
@@ -95,10 +95,10 @@ def plotComb():
     """Plot the combined limit for comparison"""
 
     # Open pickle files:
-    energies = pickle.load(open('saveE.p'))
+    mchis = pickle.load(open('saveE.p'))
     CombList = pickle.load(open('saveComb.p'))
     ## print
-    ## print energies
+    ## print mchis
     ## print CombList
     ## print
 
@@ -121,7 +121,7 @@ def plotComb():
     # Plot stuff:
     #    for c in CombList:
     #        print c
-    ax1.plot(energies, CombList, color='black', lw=3, 
+    ax1.plot(mchis, CombList, color='black', lw=3, 
              linestyle='dotted', label='Combined limit')
 
     plt.legend(loc=4,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
@@ -131,7 +131,7 @@ def plotComb():
 def plotAeffs():
     # Open pickle file:
     ObjList = pickle.load(open('saveObj.p'))
-    energies = pickle.load(open('saveE.p'))
+    mchis = pickle.load(open('saveE.p'))
     
     # For plotting the combination:
     def SumOfAeff(E):
@@ -141,7 +141,7 @@ def plotAeffs():
         return soa
 
     SOAlist = []
-    for e in energies:
+    for e in mchis:
         SOAlist.append(SumOfAeff(e))
     
     # Prepare plot:
@@ -167,7 +167,7 @@ def plotAeffs():
         ax1.plot(o.Aeffdata[:,0],o.Aeffdata[:,1],label=o.Name)
 
     # Plot summed eff. area:
-    #ax1.plot(energies, SOAlist, label="combined")
+    #ax1.plot(mchis, SOAlist, label="combined")
     
 #    plt.legend(["MAGIC","VERITAS","HESS Sgr","HESS Scu"],loc=4)
 #    plt.legend(loc=4)
@@ -179,11 +179,11 @@ def plotSpectra():
     from PhotonSpectra import tautau, bbbar, Bergstrom1998
     # Data:
     mchi=1000.
-    energies = np.linspace(30.,1010.,1000)
+    mchis = np.linspace(30.,1010.,1000)
     tautaulist = []
     bbbarlist = []
     Berglist = []
-    for e in energies:
+    for e in mchis:
         tautaulist.append(tautau(e,mchi))
         bbbarlist.append(bbbar(e,mchi))
         Berglist.append(Bergstrom1998(e,mchi))
@@ -200,12 +200,12 @@ def plotSpectra():
     ax1.xaxis.grid(color='gray', linestyle='dashed')
     ax1.set_title(r'Spectra for $m_\chi$ = 1000 GeV')
 
-    plot1 = ax1.plot(energies, tautaulist, label=r'$\tau\tau$')
-    plot2 = ax1.plot(energies, bbbarlist, label=r'$b\bar{b}$')
-    plot3 = ax1.plot(energies, Berglist, label=r'$WW$')
-    ## plot1 = ax1.plot(energies, energies**2*tautaulist, label=r'$\tau\tau$')
-    ## plot2 = ax1.plot(energies, energies**2*bbbarlist, label=r'$b\bar{b}$')
-    ## plot3 = ax1.plot(energies, energies**2*Berglist, label=r'$WW$')
+    plot1 = ax1.plot(mchis, tautaulist, label=r'$\tau\tau$')
+    plot2 = ax1.plot(mchis, bbbarlist, label=r'$b\bar{b}$')
+    plot3 = ax1.plot(mchis, Berglist, label=r'$WW$')
+    ## plot1 = ax1.plot(mchis, mchis**2*tautaulist, label=r'$\tau\tau$')
+    ## plot2 = ax1.plot(mchis, mchis**2*bbbarlist, label=r'$b\bar{b}$')
+    ## plot3 = ax1.plot(mchis, mchis**2*Berglist, label=r'$WW$')
 
     plt.legend(loc='lower left')
     plt.show()

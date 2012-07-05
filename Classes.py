@@ -68,6 +68,13 @@ class Object(object):
             return float(interpolate.interp1d(self.Aeffdata[:,0],self.Aeffdata[:,1])(Energy))
         else:
             return 0.
+        
+    def Sensi(self, mchi):
+        def integral(mchi):
+            return quad(lambda E: self.Spectrum(E, mchi)*self.Aeff(E),
+                        self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
+        int_v = np.vectorize(integral)
+        return int_v(mchi)
 
 ##     def ULsigmav_tautau(self,mchi):
 ##         """ Calculates UL on sigmav with a Cembranos tautau spectrum."""
@@ -130,7 +137,7 @@ class Pub(object):
         self.table = np.genfromtxt(tablefile)
         self.legend = legend
         print self.Name+" imported\n"
-        self.energies=self.table[:,0]
+        self.mchis=self.table[:,0]
         self.ul=self.table[:,1]
 
     
