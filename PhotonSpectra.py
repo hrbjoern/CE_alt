@@ -14,7 +14,7 @@ def dNdx(x,a1,b1,b2,c1,c2,d1,d2,q,p,n1,n2):
                                                 
 # tautau:
 def tautau(E, mchi):
-    if (E < 10 or E>=mchi):
+    if (E < 10. or E>=mchi):
         return 0.
     else:
         x = E/mchi
@@ -37,7 +37,7 @@ def tautau(E, mchi):
 
 # bbbar:
 def bbbar(E, mchi):
-    if (E < 10 or E>=mchi):
+    if (E < 10. or E>=mchi):
         return 0.
     else:
         x = E/mchi

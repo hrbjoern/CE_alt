@@ -44,7 +44,7 @@ Segue1M = Object("Segue1M", "Aeffs/MAGIC_Gaug_Aeff.dat",
                  Noff=53301,
                  alpha=1.0,
                  spectrum="bbbar")
-Segue1M.printObject()
+#Segue1M.printObject()
 
 Segue1V = Object("Segue1V","Aeffs/VERITAS_Segue1_Aeff_TrueE.dat", #"Aeffs/VERITAS-Aeff_20deg.dat",
                  Tobs=47.8,
@@ -53,7 +53,7 @@ Segue1V = Object("Segue1V","Aeffs/VERITAS_Segue1_Aeff_TrueE.dat", #"Aeffs/VERITA
                  Noff=12479,
                  alpha=0.084,
                  spectrum="bbbar")
-Segue1V.printObject()
+#Segue1V.printObject()
 
 Segue1V_tautau = Object("Segue1V-tautau","Aeffs/VERITAS_Segue1_Aeff_TrueE.dat", #"Aeffs/VERITAS-Aeff_20deg.dat",
                         Tobs=47.8,
@@ -62,7 +62,7 @@ Segue1V_tautau = Object("Segue1V-tautau","Aeffs/VERITAS_Segue1_Aeff_TrueE.dat", 
                         Noff=12479,
                         alpha=0.084,
                         spectrum="tautau")
-Segue1V.printObject()
+#Segue1V.printObject()
 
 SculptorIso = Object("SculptorIso","Aeffs/HESS_Aeffs_Crab_20deg.dat",
                      Tobs=11.8,
@@ -71,7 +71,7 @@ SculptorIso = Object("SculptorIso","Aeffs/HESS_Aeffs_Crab_20deg.dat",
                      Noff=2283,
                      alpha=0.04,
                      spectrum="bbbar")
-SculptorIso.printObject()
+#SculptorIso.printObject()
 
 SculptorNFW = Object("SculptorNFW","Aeffs/HESS_Aeffs_Crab_20deg.dat",
                      Tobs=11.8,
@@ -80,7 +80,7 @@ SculptorNFW = Object("SculptorNFW","Aeffs/HESS_Aeffs_Crab_20deg.dat",
                      Noff=2283,
                      alpha=0.04,
                      spectrum="bbbar")                    
-SculptorNFW.printObject()
+#SculptorNFW.printObject()
 
 Sgr = Object("Sgr","Aeffs/HESS_Aeffs_Crab_20deg.dat",
              Tobs=11.,
@@ -89,7 +89,7 @@ Sgr = Object("Sgr","Aeffs/HESS_Aeffs_Crab_20deg.dat",
              Noff=4270,
              alpha=(1./10.1),
              spectrum="bbbar")
-Sgr.printObject()
+#Sgr.printObject()
 
 Willman1V = Object("Willman1V", "Aeffs/VERITAS-Aeff_20deg.dat",
                    Tobs=13.68,
@@ -98,7 +98,7 @@ Willman1V = Object("Willman1V", "Aeffs/VERITAS-Aeff_20deg.dat",
                    Noff=3602,
                    alpha=(1./11.),
                    spectrum="bbbar")
-Willman1V.printObject()
+#Willman1V.printObject()
 
 ObjList = (Segue1M, Segue1V, Segue1V_tautau, SculptorIso, Willman1V, Sgr)
 #ObjList = (Segue1M,Segue1V)
@@ -117,11 +117,11 @@ print
 mchis = np.logspace(2,5,esteps)
 
 ## # TESTING:
-## print 'Sensi(mchis): '
+## print 'SensiIntegral(mchis): '
 ## for o in ObjList:
-##     #o.Sensi = np.vectorize(o.Sensi_scalar)
-##     #pprint (o.Sensi(mchis))
-##     pprint (o.Sensi_v(mchis))
+## ##     #o.Sensi = np.vectorize(o.Sensi_scalar)
+## ##     #pprint (o.Sensi(mchis))
+##     pprint (o.SensiIntegral(mchis))
 ## sys.exit()
 
 
@@ -256,6 +256,7 @@ CombList = (UL_bbbarComb)
 
 # Vectorize the comb. lhood function? Yes!
 CL_vec = np.vectorize(ComblogLhood)
+#CL_vec = ComblogLhood
 
 # np.array for sigmav values: (over which to interpolate?)
 sigmav_steps = esteps # for the moment
@@ -266,16 +267,20 @@ print 'sigmavs = ', sigmavs
 sv, mv = np.meshgrid(sigmavs, mchis)
 
 # Resulting array of CL values
-print '\n\n CL-Array = CL_vec(sigmavs, mchis):'
+#print '\n\n CL-Array = CL_vec(sigmavs, mchis):'
 #CLArray = CL_vec(sv, mv)
 #print CLArray
 
 
 print '\nCL Array calling time: '
 with Timer():
-    CL_vec(sv, mv)
+    CLArray = CL_vec(sv, mv)
+print CLArray
 
 
+## print '\nCL Array calling time, v2: '
+## with Timer():
+##     ComblogLhood(sv, mv)
 
 sys.exit()
 

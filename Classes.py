@@ -1,7 +1,7 @@
 #from PhotonSpectra import *
 import PhotonSpectra
 from math import pi, exp
-from scipy.integrate import quad
+from scipy.integrate import quad, quadrature
 from scipy import interpolate
 from scipy.stats import poisson
 import numpy as np
@@ -49,8 +49,8 @@ class Object(object):
         # Get spectrum function:
         # self.Spectrum = eval("PhotonSpectra."+spectrum) # works, but 
         self.Spectrum = getattr(PhotonSpectra, spectrum)  # seems better
-        print self.Spectrum
-        print type(self.Spectrum)
+        #print self.Spectrum
+        #print type(self.Spectrum)
                 
     def printObject(self):
         """ Prints object, just for testing. """
@@ -69,43 +69,29 @@ class Object(object):
         else:
             return 0.
         
-    def Sensi(self, mchi):
-        def integral(mchi):
-            return quad(lambda E: self.Spectrum(E, mchi)*self.Aeff(E),
-                        self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
-        int_v = np.vectorize(integral)
-        return int_v(mchi)
+    def Sensi(self, E, mchi):
+        return self.Spectrum(E, mchi)*self.Aeff(E)
 
-##     def ULsigmav_tautau(self,mchi):
-##         """ Calculates UL on sigmav with a Cembranos tautau spectrum."""
-##         prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
-## #        result = prefactor / quad(lambda E: (Bergstrom1998(E,mchi)*self.Aeff(E)),
-## #                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
-##         result = prefactor / quad(lambda E: (tautau(E,mchi)*self.Aeff(E)),
-##                                   self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
-## #        return np.minimum(result,1.)
-##         return result
-    
-##     def ULsigmav_bbbar(self,mchi):
-##         """ Calculates UL on sigmav with a Cembranos bbbar spectrum."""
-##         prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
-##         result = prefactor / quad(lambda E: (bbbar(E,mchi)*self.Aeff(E)),
-##                                   self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
-##         return result     
-    
-##     def ULsigmav_WW(self,mchi):
-##         """ Calculates UL on sigmav with a standard Bergstrom spectrum."""
-##         prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
-##         result = prefactor / quad(lambda E: (Bergstrom1998(E,mchi)*self.Aeff(E)),
-##                                   self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
-##         return result
+    ## def SensiIntegral(self, mchi):
+    ##     def integral(mchi):
+    ##         return quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
+    ##                     limit=50,full_output=1)[0]
+    ##     int_v = np.vectorize(integral)
+    ##     return int_v(mchi)
 
-    def ULsigmav(self,mchi):
-        """ Calculates UL on sigmav with the object's member spectrum."""
-        prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
-        result = prefactor / quad(lambda E: (self.Spectrum(E,mchi)*self.Aeff(E)),
-                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
-        return result 
+    def SensiIntegral_scalar(self, mchi):
+        return quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
+                        limit=50,full_output=1)[0]
+    
+    ## def SensiIntegral(self, mchi):
+    ##     vectorresult = np.vectorize(self.SensiIntegral_scalar)
+    ##     return vectorresult(mchi)
+
+    def SensiIntegral(self, mchi):
+        #res =  quadrature(self.Sensi, self.Eth, 1.01*mchi, args=(mchi,))[0]
+        res =  quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi,),
+                    limit=50,full_output=1)[0]
+        return res
 
     # MOST important:
     def logLhood(self, sigmav, mchi):
@@ -116,18 +102,25 @@ class Object(object):
         Poissonian PMF: poisson.pmf(k,mu) = exp(-mu) * mu**k / k!
         """
         Ns = ((sigmav / (8.*pi*mchi**2)) * self.Tobs * self.Jbar *
-              quad(lambda E: self.Spectrum(E,mchi)*self.Aeff(E), 
-                   self.Eth, 1.01*mchi,limit=50,full_output=1)[0])
-        # Integral RAUS aus Funktionsdefinition?
-        #print 'logLhood: Ns = ', Ns
+              quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
+                   limit=50,full_output=1)[0])
+
+        ## quad(lambda E: self.Spectrum(E,mchi)*self.Aeff(E), 
+        ##            self.Eth, 1.01*mchi,limit=50,full_output=1)[0])
+
         # Use log PMF for faster calculation:
         logPois1 = poisson.logpmf(self.Non, (Ns+self.alpha*self.Noff))
-        #print 'logLhood: logPois1 = ', logPois1
         logPois2 = poisson.logpmf(self.Noff, self.Noff)
-        #print 'logLhood: logPois2 = ', logPois2
-        #return log(Pois1*Pois2)
         return logPois1+logPois2
+
     
+    def ULsigmav(self,mchi):
+        """ Calculates UL on sigmav with the object's member spectrum."""
+        prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
+        result = prefactor / quad(lambda E: (self.Spectrum(E,mchi)*self.Aeff(E)),
+                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
+        return result 
+
     
 class Pub(object):
     """This class holds the actual limits from publications."""
