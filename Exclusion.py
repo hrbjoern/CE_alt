@@ -20,8 +20,11 @@ import time
 from math import pi
 from scipy.integrate import quad
 from scipy.optimize import fmin
+from scipy.interpolate import interp2d
 from pprint import pprint
 
+#import pyximport; pyximport.install(pyimport = True)
+#import pyximport; pyximport.install()
 from Classes import Object, Pub
 import PhotonSpectra
 import Plotting
@@ -116,6 +119,7 @@ print '\n # energy steps =', esteps
 print
 mchis = np.logspace(2,5,esteps)
 
+
 ## # TESTING:
 ## print 'SensiIntegral(mchis): '
 ## for o in ObjList:
@@ -125,12 +129,16 @@ mchis = np.logspace(2,5,esteps)
 ## sys.exit()
 
 
-# Calculate individual upper limits:
-for o in ObjList:
-    o.ul = []
-    for mchi in mchis:
-        o.ul.append(o.ULsigmav(mchi))
-        ## o.ul_tautau.append(o.ULsigmav_tautau(mchi)) ... deprecated ;)
+## # TESTING:
+## # Calculate individual upper limits:
+## for o in ObjList:
+##     o.UL = []
+##     for mchi in mchis:
+##         o.UL.append(o.ULsigmav(mchi))
+##         ## o.ul_tautau.append(o.ULsigmav_tautau(mchi)) ... deprecated ;)
+
+
+
 
     #o.ul2 = (np.vectorize(o.ULsigmav))(mchis) #... funktioniert leider nicht
     #o.ul2 = o.ULsigmav(mchis)
@@ -171,7 +179,6 @@ for o in CombinationList:
      SumOfNon += o.Non
      SumOfNoff += o.Noff
      SumOfAlphaNoff += o.alpha*o.Noff
-
 
 # Calculate "mean" alpha:
 alphabar = SumOfAlphaNoff / SumOfNoff
@@ -227,6 +234,24 @@ UL_bbbarComb = (8.*pi*mchis**2*SumOfNulbar/ vec_integral(mchis) )
 # (still needs "CombinationList" from above)
 print '\nStart Combination: \n'
 
+# Timing tests:
+class Timer():
+   def __enter__(self): self.start = time.time()
+   def __exit__(self, *args): print time.time() - self.start
+
+#with Timer():
+# Define array of integrated sensitivities:
+for o in CombinationList:
+    for mchi in mchis:
+        o.SensiIntegralArray[mchi] = o.SensiIntegral(mchi)
+    #print 'o.SensiIntegralArray[%.2f] = %.2f' %(mchi, o.SensiIntegralArray[mchi])
+    #o.SensiIntegralArray = o.SensiIntegral(mchis)
+    # .. doesnt really work. Array indexing is screwed up.
+    # (And the time gain isnt so great.)
+
+#sys.exit()
+#print
+
 def ComblogLhood(sigmav, mchi):
     """ Combined log likelihood. THE master function."""
     return -sum(o.logLhood(sigmav, mchi) for o in CombinationList)
@@ -235,10 +260,7 @@ def ComblogLhood(sigmav, mchi):
 #CLmax = fmin(ComblogLhood, 10., args=[1000.])
 #print 'CLmax = ', CLmax
 
-# Timing test:
-class Timer():
-   def __enter__(self): self.start = time.time()
-   def __exit__(self, *args): print time.time() - self.start
+
 
 print 'CL calling time: '
 with Timer():
@@ -259,28 +281,39 @@ CL_vec = np.vectorize(ComblogLhood)
 #CL_vec = ComblogLhood
 
 # np.array for sigmav values: (over which to interpolate?)
-sigmav_steps = esteps # for the moment
+sigmav_steps = 2*esteps # for the moment
 sigmavs = np.logspace(-26, -20, sigmav_steps)
 print 'sigmavs = ', sigmavs
 
 # 2D-valued array of sigmavs and mchis: Works! :)
 sv, mv = np.meshgrid(sigmavs, mchis)
 
-# Resulting array of CL values
-#print '\n\n CL-Array = CL_vec(sigmavs, mchis):'
-#CLArray = CL_vec(sv, mv)
-#print CLArray
-
-
 print '\nCL Array calling time: '
 with Timer():
     CLArray = CL_vec(sv, mv)
 print CLArray
 
+# Interpolation:
 
-## print '\nCL Array calling time, v2: '
-## with Timer():
-##     ComblogLhood(sv, mv)
+# Define mask to avoid infinities:
+CLArrayMask = ~np.isinf(CLArray)
+print CLArrayMask
+print
+print 'Masked array:'
+print CLArray[CLArrayMask]
+print
+
+
+CLinterpol = interp2d(sv[CLArrayMask], mv[CLArrayMask], CLArray[CLArrayMask], kind='linear')
+#CLinterpol = interp2d(mchis, sigmavs, CLArray], kind='linear')
+
+print
+print 'CLinterpol(CL_vec):'
+
+#for mchi in mchis:
+#    for sigmav in sigmavs:
+print CLinterpol(sigmavs, mchis)
+
 
 sys.exit()
 

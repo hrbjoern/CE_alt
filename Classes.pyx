@@ -3,18 +3,31 @@ import PhotonSpectra
 from math import pi, exp
 from scipy.integrate import quad, quadrature
 from scipy import interpolate
+from scipy.interpolate import interp1d
 from scipy.stats import poisson
+#from scipy.stats.poisson import logpmf #...doesn't work because of scipy.stats's structure
+cimport numpy as np
 import numpy as np
 import fnmatch
 from Limits import UpperLimit
 
-class Object(object):
+print 'Classes.pyx imported'
+
+cdef class Object(object):
     """This class is supposed to hold the different \"objects\", i.e. 
     specific (publications of) DM searches towards a certain
     astrophysical object, and the formulae to calculate upper limits
-    from their results."""
+    from their results.
+    2012-07-10: Implementation change for Cython..?"""
+
+    cpdef public float Tobs, Jbar, alpha, Eth, Nul
+    cpdef public int Non, Noff
+    #    cpdef char *Name
+    cpdef public str Name
+#    cpdef public object Aeff, Sensi, logLhood
+    cpdef public object UL, Aeffdata, Spectrum
     
-    def __init__(self, Name, Aeff, Tobs, Jbar, Non, Noff, alpha, spectrum):
+    def __init__(self, Name, Aefffile, Tobs, Jbar, Non, Noff, alpha, spectrum):
         """ Initializes \"object\", including some specific object modifications."""
         #        print "\nHallo", Name
         self.Name = Name
@@ -24,17 +37,17 @@ class Object(object):
         elif fnmatch.fnmatch(self.Name,'Scu*'):
             self.Eth=200. #Sculptor fudge factor. Carina?!
 
-        self.Aeffdata = np.genfromtxt(Aeff)
+        self.Aeffdata = np.genfromtxt(Aefffile)
         # Consider all energies in GeV, all Aeffs in cm**2:
-        if Aeff=="Aeffs/VERITAS-Aeff_20deg.dat":
+        if Aefffile=="Aeffs/VERITAS-Aeff_20deg.dat":
             pass
-        elif Aeff=="Aeffs/MAGIC_Gaug_Aeff.dat":
+        elif Aefffile=="Aeffs/MAGIC_Gaug_Aeff.dat":
             self.Aeffdata[:,1]*=100. # Factor 100 in MAGIC Aeff table
             self.Aeffdata[:,1]*=1e4  # m^2 to cm^2
             self.Eth = 100.
         else:
             self.Aeffdata[:,1]*=1e4 # m^2 to cm^2
-            if Aeff!="Aeffs/VERITAS_Segue1_Aeff_TrueE.dat":
+            if Aefffile!="Aeffs/VERITAS_Segue1_Aeff_TrueE.dat":
                 self.Aeffdata[:,0]*=1000. # TeV to GeV
             #elif fnmatch.fnmatch(self.Name,'Scu*'):
                 #self.Aeffdata[:,1]*=0.8 # Fudge efficiency factor
@@ -46,13 +59,12 @@ class Object(object):
         self.alpha = alpha
         #TRolke calculation:
         self.Nul = float(UpperLimit(self.Non, self.Noff, self.alpha))
+
         # Get spectrum function:
         # self.Spectrum = eval("PhotonSpectra."+spectrum) # works, but 
         self.Spectrum = getattr(PhotonSpectra, spectrum)  # seems better
-        #print self.Spectrum
-        #print type(self.Spectrum)
-        self.SensiIntegralArray = np.zeros(1000000)
 
+        self.UL = []
                 
     def printObject(self):
         """ Prints object, just for testing. """
@@ -64,61 +76,54 @@ class Object(object):
         print self.Aeffdata[0,0], ", Emin(Aeff) in GeV"
         print
 
-    def Aeff(self,Energy):
+    cpdef public float Aeff(self, float Energy):
         """ Aeff function from the Aeffdata stored in each object."""
+        cdef float result
+
         if (self.Aeffdata[0,0] < Energy < self.Aeffdata[-1,0]):
-            return float(interpolate.interp1d(self.Aeffdata[:,0],self.Aeffdata[:,1])(Energy))
+            result =  interp1d(self.Aeffdata[:,0],self.Aeffdata[:,1])(Energy)
         else:
-            return 0.
+            result = 0.
+        return result
         
-    def Sensi(self, E, mchi):
-        return self.Spectrum(E, mchi)*self.Aeff(E)
+    cpdef public float Sensi(self, float E, float mchi):
+        cdef float res
+        res = self.Spectrum(E, mchi)*self.Aeff(E)
+        return res
 
-    ## def SensiIntegral(self, mchi):
-    ##     def integral(mchi):
-    ##         return quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
-    ##                     limit=50,full_output=1)[0]
-    ##     int_v = np.vectorize(integral)
-    ##     return int_v(mchi)
-
-    def SensiIntegral_scalar(self, mchi):
-        return quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
-                        limit=50,full_output=1)[0]
-    
-    def SensiIntegral(self, mchi):
-        vectorresult = np.vectorize(self.SensiIntegral_scalar)
-        return vectorresult(mchi)
-
-    ## def SensiIntegral(self, mchi):
-    ##     res =  quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi,),
-    ##                 limit=50,full_output=1)[0]
-    ##     return res
-   
 
     # MOST important:
-    def logLhood(self, sigmav, mchi):
+    #cpdef public float logLhood(self, float sigmav, float mchi) except *:
+    cpdef public float logLhood(self, float sigmav, float mchi):
         """Most important! This is each object's log likelihood function.
 
         Note: The data parameters Non, Noff, alpha are class members - hence they 
         need not be called as function parameters.
         Poissonian PMF: poisson.pmf(k,mu) = exp(-mu) * mu**k / k!
         """
+        cdef float Ns
+        cdef int testnoff
+        testnoff = self.Noff
         Ns = ((sigmav / (8.*pi*mchi**2)) * self.Tobs * self.Jbar *
-              self.SensiIntegralArray[mchi] )
-#              quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
-#                   limit=20,full_output=1)[0])
+                         float(quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
+                                    limit=50,full_output=1)[0]))
+
+        ## quad(lambda E: self.Spectrum(E,mchi)*self.Aeff(E), 
+        ##            self.Eth, 1.01*mchi,limit=50,full_output=1)[0])
 
         # Use log PMF for faster calculation:
+        cdef float logPois1, logPois2
         logPois1 = poisson.logpmf(self.Non, (Ns+self.alpha*self.Noff))
-        logPois2 = poisson.logpmf(self.Noff, self.Noff)
+        #logPois2 = poisson.logpmf(self.Noff, self.Noff)
+        logPois2 = poisson.logpmf(testnoff, testnoff)
         return logPois1+logPois2
 
     
-    def ULsigmav(self,mchi):
+    cpdef public float ULsigmav(self, float mchi):
         """ Calculates UL on sigmav with the object's member spectrum."""
         prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
-        result = prefactor / quad(lambda E: (self.Spectrum(E,mchi)*self.Aeff(E)),
-                                  self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
+        result = prefactor / quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
+                                  limit=50,full_output=1)[0]
         return result 
 
     
@@ -133,4 +138,28 @@ class Pub(object):
         self.mchis=self.table[:,0]
         self.ul=self.table[:,1]
 
+
+
+# Alte Tests aus class Object():
+
+
+    ## def SensiIntegral(self, mchi):
+    ##     def integral(mchi):
+    ##         return quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
+    ##                     limit=50,full_output=1)[0]
+    ##     int_v = np.vectorize(integral)
+    ##     return int_v(mchi)
+
+    ## def SensiIntegral_scalar(self, mchi):
+    ##     return quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
+    ##                     limit=50,full_output=1)[0]
     
+    ## def SensiIntegral(self, mchi):
+    ##     vectorresult = np.vectorize(self.SensiIntegral_scalar)
+    ##     return vectorresult(mchi)
+
+    ## def SensiIntegral(self, mchi):
+    ##     #res =  quadrature(self.Sensi, self.Eth, 1.01*mchi, args=(mchi,))[0]
+    ##     res =  quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi,),
+    ##                 limit=50,full_output=1)[0]
+    ##     return res
