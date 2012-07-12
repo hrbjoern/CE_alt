@@ -239,12 +239,14 @@ class Timer():
    def __enter__(self): self.start = time.time()
    def __exit__(self, *args): print time.time() - self.start
 
-#with Timer():
-# Define array of integrated sensitivities:
-for o in CombinationList:
-    for mchi in mchis:
-        o.SensiIntegralArray[mchi] = o.SensiIntegral(mchi)
-    #print 'o.SensiIntegralArray[%.2f] = %.2f' %(mchi, o.SensiIntegralArray[mchi])
+
+print 'Sensi integration time:'
+with Timer():
+    # Define array of integrated sensitivities:
+    for o in CombinationList:
+        for mchi in mchis:
+            o.SensiIntegralArray[mchi] = o.SensiIntegral(mchi)
+            #print 'o.SensiIntegralArray[%.2f] = %.2f' %(mchi, o.SensiIntegralArray[mchi])
     #o.SensiIntegralArray = o.SensiIntegral(mchis)
     # .. doesnt really work. Array indexing is screwed up.
     # (And the time gain isnt so great.)
@@ -281,9 +283,9 @@ CL_vec = np.vectorize(ComblogLhood)
 #CL_vec = ComblogLhood
 
 # np.array for sigmav values: (over which to interpolate?)
-sigmav_steps = 2*esteps # for the moment
+sigmav_steps = esteps # for the moment
 sigmavs = np.logspace(-26, -20, sigmav_steps)
-print 'sigmavs = ', sigmavs
+#print 'sigmavs = ', sigmavs
 
 # 2D-valued array of sigmavs and mchis: Works! :)
 sv, mv = np.meshgrid(sigmavs, mchis)
@@ -291,28 +293,38 @@ sv, mv = np.meshgrid(sigmavs, mchis)
 print '\nCL Array calling time: '
 with Timer():
     CLArray = CL_vec(sv, mv)
-print CLArray
+## print '\n CLArray:'
+## print CLArray
+## print
+
+
 
 # Interpolation:
 
-# Define mask to avoid infinities:
-CLArrayMask = ~np.isinf(CLArray)
-print CLArrayMask
+# Cut off infinities in CLArray:
+CLA_cut = np.where(CLArray < 1000., CLArray, 1000.)
+## print '\n CLArray, neu: CLA_cut'
+## print CLA_cut
+## print
+
+# Interpol function:
+CLinterpol = interp2d(sigmavs, mchis, CLA_cut)
+# Test array:
+#print 'CLinterpol(sigmavs, mchis):'
+CL_Test = CLinterpol(sigmavs, mchis)
+#print CL_Test
+#print
+
+TestDiff = np.where((np.abs(CL_Test-CLA_cut)/CLA_cut)>0.1,
+                    np.abs(CL_Test-CLA_cut), 0.)
+print '\nLarge differences (>10%) in interpolation:'
+#print np.nonzero(TestDiff)
 print
-print 'Masked array:'
-print CLArray[CLArrayMask]
-print
-
-
-CLinterpol = interp2d(sv[CLArrayMask], mv[CLArrayMask], CLArray[CLArrayMask], kind='linear')
-#CLinterpol = interp2d(mchis, sigmavs, CLArray], kind='linear')
-
-print
-print 'CLinterpol(CL_vec):'
-
-#for mchi in mchis:
-#    for sigmav in sigmavs:
-print CLinterpol(sigmavs, mchis)
+Fehler = len(np.nonzero(TestDiff)[0])
+von = len(CLA_cut.flat)
+Prozent = 100.*float(Fehler)/float(von)
+print 'This occured %i (out of %i) times, i.e. %.1f%% of the time.\n' \
+      % (Fehler, von, Prozent)
 
 
 sys.exit()
