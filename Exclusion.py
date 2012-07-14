@@ -19,8 +19,9 @@ import time
 
 from math import pi
 from scipy.integrate import quad
-from scipy.optimize import fmin
-from scipy.interpolate import interp2d
+from scipy.optimize import fmin, fsolve #, minimize <- scipy 0.11!
+from scipy.interpolate import interp2d, interp1d
+from scipy import interp
 from pprint import pprint
 
 #import pyximport; pyximport.install(pyimport = True)
@@ -103,12 +104,14 @@ Willman1V = Object("Willman1V", "Aeffs/VERITAS-Aeff_20deg.dat",
                    spectrum="bbbar")
 #Willman1V.printObject()
 
+
 ObjList = (Segue1M, Segue1V, Segue1V_tautau, SculptorIso, Willman1V, Sgr)
 #ObjList = (Segue1M,Segue1V)
 #ObjList = (Segue1M,Segue1M)
 
 # Consider all energies in GeV!!!
 print "\nAll energies are in GeV\n"
+
 
 # IMPORTANT. Basic energy value spacing.
 try:
@@ -120,38 +123,13 @@ print
 mchis = np.logspace(2,5,esteps)
 
 
-## # TESTING:
-## print 'SensiIntegral(mchis): '
-## for o in ObjList:
-## ##     #o.Sensi = np.vectorize(o.Sensi_scalar)
-## ##     #pprint (o.Sensi(mchis))
-##     pprint (o.SensiIntegral(mchis))
-## sys.exit()
+# Calculate individual upper limits:
+for o in ObjList:
+    o.UL = []
+    for mchi in mchis:
+        o.UL.append(o.ULsigmav(mchi))
+        ## o.ul_tautau.append(o.ULsigmav_tautau(mchi)) ... deprecated ;)
 
-
-## # TESTING:
-## # Calculate individual upper limits:
-## for o in ObjList:
-##     o.UL = []
-##     for mchi in mchis:
-##         o.UL.append(o.ULsigmav(mchi))
-##         ## o.ul_tautau.append(o.ULsigmav_tautau(mchi)) ... deprecated ;)
-
-
-
-
-    #o.ul2 = (np.vectorize(o.ULsigmav))(mchis) #... funktioniert leider nicht
-    #o.ul2 = o.ULsigmav(mchis)
-    #pprint(o.ul2)
-    # pprint (vars(o)) # Tolltolltoll!!! :)
-
-# Add sensitivity curve S(E) to all objects
-# - but only for selected masses!
-
-#for o in ObjList:
-#    def o.S(E)
-    
-    
 
 
 ########################################################
@@ -204,15 +182,6 @@ def IntegrandSum(E):
         soa += o.Tobs*o.Jbar*o.Aeff(E)
     return soa
 
-## UL_bbbarComb = [] # ... unnecessary! See array-ified version below.
-## for mchi in mchis:
-##     UL_bbbarComb.append(8.*pi*mchi**2*SumOfNulbar/
-##                     quad(lambda E: (PhotonSpectra.bbbar(E,mchi)*IntegrandSum(E)),
-##                          30., 1.01*mchi, limit=50,full_output=1)[0])
-##     # Testing:
-##     #for o in ObjList:
-##     #    print 'logLikelihood(sigmav=0, mchi) = ', o.logLhood(0., mchi)
-
 # Vectorize the integration:
 def integral(mchi):
     return quad(lambda E: (PhotonSpectra.bbbar(E,mchi)*IntegrandSum(E)),
@@ -223,9 +192,7 @@ vec_integral = np.vectorize(integral)
 # Array-ify the calculation: works! :) Replaces "for mchi in mchis". 
 UL_bbbarComb = (8.*pi*mchis**2*SumOfNulbar/ vec_integral(mchis) )
 
-
-
-#print 'UL_bbbarComb = ', UL_bbbarComb
+print '\nUL_bbbarComb = ', UL_bbbarComb
 
 
 ########################################################
@@ -251,49 +218,38 @@ with Timer():
     # .. doesnt really work. Array indexing is screwed up.
     # (And the time gain isnt so great.)
 
-#sys.exit()
-#print
 
-def ComblogLhood(sigmav, mchi):
+def ComblogLhood(mchi, sigmav):
     """ Combined log likelihood. THE master function."""
     return -sum(o.logLhood(sigmav, mchi) for o in CombinationList)
-
-# preliminary maximization:
-#CLmax = fmin(ComblogLhood, 10., args=[1000.])
-#print 'CLmax = ', CLmax
-
-
 
 print 'CL calling time: '
 with Timer():
     ComblogLhood(1e-22, 1000.)
 print 
     
-#t = timeit.Timer('ComblogLhood(1e-22, 1000.)', "from __main__ import ComblogLhood")
-#print '\n time it:', t.timeit()
-#sys.exit()
-
-# LEFTOVER: move elsewhere!
-# List of combined limits: Add more later!
-CombList = (UL_bbbarComb)
-
-
 # Vectorize the comb. lhood function? Yes!
 CL_vec = np.vectorize(ComblogLhood)
-#CL_vec = ComblogLhood
 
-# np.array for sigmav values: (over which to interpolate?)
-sigmav_steps = esteps # for the moment
+
+# np.array for sigmav values: (over which to interpolate)
+sigmav_steps = esteps # make same-dim array
 sigmavs = np.logspace(-26, -20, sigmav_steps)
 #print 'sigmavs = ', sigmavs
 
 # 2D-valued array of sigmavs and mchis: Works! :)
-sv, mv = np.meshgrid(sigmavs, mchis)
+mv, sv = np.meshgrid(mchis, sigmavs) # Note: indexing rules!
+
+
+## print 'meshgrid(s): mv, sv'
+## print mv
+## print sv
+## print
 
 print '\nCL Array calling time: '
 with Timer():
-    CLArray = CL_vec(sv, mv)
-## print '\n CLArray:'
+    CLArray = CL_vec(mv, sv)
+## print '\n CLArray(mv, sv):'
 ## print CLArray
 ## print
 
@@ -302,32 +258,40 @@ with Timer():
 # Interpolation:
 
 # Cut off infinities in CLArray:
-CLA_cut = np.where(CLArray < 1000., CLArray, 1000.)
+CLA_cut = np.where(CLArray < 100., CLArray, 100.)
 ## print '\n CLArray, neu: CLA_cut'
 ## print CLA_cut
+## print 'CLA_cut.shape: ', CLA_cut.shape
 ## print
 
-# Interpol function:
-CLinterpol = interp2d(sigmavs, mchis, CLA_cut)
-# Test array:
-#print 'CLinterpol(sigmavs, mchis):'
-CL_Test = CLinterpol(sigmavs, mchis)
-#print CL_Test
-#print
+# Array of sigmav limit values:
+UL_CombLhood = np.zeros_like(mchis)
 
-TestDiff = np.where((np.abs(CL_Test-CLA_cut)/CLA_cut)>0.1,
-                    np.abs(CL_Test-CLA_cut), 0.)
-print '\nLarge differences (>10%) in interpolation:'
-#print np.nonzero(TestDiff)
-print
-Fehler = len(np.nonzero(TestDiff)[0])
-von = len(CLA_cut.flat)
-Prozent = 100.*float(Fehler)/float(von)
-print 'This occured %i (out of %i) times, i.e. %.1f%% of the time.\n' \
-      % (Fehler, von, Prozent)
+## 1D along each mchi:
+for m in np.arange(mchis.size): # loop over "mchis" indices, not entries
+    CLmin_m = CLA_cut[:, m].min()
+    #CLmax_m = CLA_cut[:, m].max()
+
+    def CLinterpol(sigmav):
+        return interp(sigmav, sigmavs, CLA_cut[:, m]) # this is the right index!
+    ## for s in sigmavs:
+    ##     print 'sigmav, CLinterpol(sigmav):', s, CLinterpol(s)
+
+    sigmav_min = fmin(CLinterpol, 1e-23) # returns x, not f(x)!
+
+    def CLsolve(s):
+        DeltalogL = 2. #..???????
+        return CLinterpol(s)-DeltalogL-CLmin_m # fsolve for f(x) = 0
+    sigmav_minplus2 = fsolve(CLsolve, 1e-23)
+
+    # Fill array of sigmav limits:
+    UL_CombLhood[m] = sigmav_minplus2
 
 
-sys.exit()
+
+# List of combined limits: entries are arrays 
+CombList = (UL_bbbarComb, UL_CombLhood)
+
 
 
 ########################################################
@@ -360,9 +324,6 @@ print 'Start pickling:'
 print
 
 pickle.dump(mchis, open('saveE.p','wb'))
-## for i in ObjList:
-##     i.printObject()
-##     print
 pickle.dump(ObjList, open('saveObj.p', 'wb'))
 pickle.dump(PubList, open('savePub.p', 'wb'))
 pickle.dump(CombList, open('saveComb.p', 'wb'))
@@ -398,3 +359,23 @@ sys.exit()
 ############################################################
 
 
+
+## ## 2D:
+## # Interpol function:
+## CLinterpol = interp2d(sigmavs, mchis, CLA_cut, kind='linear')
+## # Test array:
+## #print 'CLinterpol(sigmavs, mchis):'
+## CL_Test = CLinterpol(sigmavs, mchis)
+## #print CL_Test
+## #print
+
+## TestDiff = np.where((np.abs(CL_Test-CLA_cut)/CLA_cut)>0.1,
+##                     np.abs(CL_Test-CLA_cut), 0.)
+## print '\nLarge differences (>10%) in interpolation:'
+## #print np.nonzero(TestDiff)
+## print
+## Fehler = len(np.nonzero(TestDiff)[0])
+## von = len(CLA_cut.flat)
+## Prozent = 100.*float(Fehler)/float(von)
+## print 'This occured %i (out of %i) times, i.e. %.1f%% of the time.\n' \
+##       % (Fehler, von, Prozent)

@@ -30,7 +30,7 @@ def plotObjects():
     
     #Plot stuff:
     for o in ObjList:
-        ax1.plot(mchis,o.ul,label=o.Name)
+        ax1.plot(mchis,o.UL,label=o.Name)
         ## if o.Name=="SculptorIso":
         ##     ax1.plot(mchis,o.ul_WW,label=o.Name)
         ##     #print o.Aeffdata
@@ -92,7 +92,7 @@ def plotPubs():
         plt.show()
 
 def plotComb():
-    """Plot the combined limit for comparison"""
+    """Plot the combined limit(s) for comparison"""
 
     # Open pickle files:
     mchis = pickle.load(open('saveE.p'))
@@ -118,12 +118,11 @@ def plotComb():
     #matplotlib.colors.Normalize()
     ax1.set_color_cycle(('b','g','r','c','m','y'))
 
-    # Plot stuff:
-    #    for c in CombList:
-    #        print c
-    ax1.plot(mchis, CombList, color='black', lw=3, 
-             linestyle='dotted', label='Combined limit')
-
+    ax1.plot(mchis, CombList[0], color='black', lw=3, 
+             linestyle='dotted', label='Simply combined limit')
+    ax1.plot(mchis, CombList[1], color='red', lw=4, 
+             linestyle='dashed', label='Combined l\'hood limit')
+    
     plt.legend(loc=4,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
     plt.show()
 
@@ -132,17 +131,6 @@ def plotAeffs():
     # Open pickle file:
     ObjList = pickle.load(open('saveObj.p'))
     mchis = pickle.load(open('saveE.p'))
-    
-    # For plotting the combination:
-    def SumOfAeff(E):
-        soa = 0.
-        for o in ObjList:
-            soa += o.Aeff(E)
-        return soa
-
-    SOAlist = []
-    for e in mchis:
-        SOAlist.append(SumOfAeff(e))
     
     # Prepare plot:
     fig1 = plt.figure(1)
@@ -159,18 +147,15 @@ def plotAeffs():
     #Plot stuff:
     for o in ObjList:
         print o.Name
-        # Calculate mean effective area:
-        print 'Aeff = %e' % ((quad(lambda E: o.Aeff(E),
-                                   o.Aeffdata[0,0], o.Aeffdata[-1,0])[0])
-                             /(o.Aeffdata[-1,0]- o.Aeffdata[0,0]))
+        ## # Calculate mean effective area for each instrument: 
+        ## print 'Aeff = %e' % ((quad(lambda E: o.Aeff(E),
+        ##                            o.Aeffdata[0,0], o.Aeffdata[-1,0])[0])
+        ##                      /(o.Aeffdata[-1,0]- o.Aeffdata[0,0]))
         # Plot eff. area:
         ax1.plot(o.Aeffdata[:,0],o.Aeffdata[:,1],label=o.Name)
-
-    # Plot summed eff. area:
-    #ax1.plot(mchis, SOAlist, label="combined")
     
-#    plt.legend(["MAGIC","VERITAS","HESS Sgr","HESS Scu"],loc=4)
-#    plt.legend(loc=4)
+    plt.legend(["MAGIC","VERITAS","HESS Sgr","HESS Scu"],loc=4)
+    plt.legend(loc=4)
     plt.show()
 
 

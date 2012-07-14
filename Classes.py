@@ -49,8 +49,7 @@ class Object(object):
         # Get spectrum function:
         # self.Spectrum = eval("PhotonSpectra."+spectrum) # works, but 
         self.Spectrum = getattr(PhotonSpectra, spectrum)  # seems better
-        #print self.Spectrum
-        #print type(self.Spectrum)
+        # To be used for sensitivity integration/Exclusion.py:
         self.SensiIntegralArray = np.zeros(1000000)
 
                 
@@ -74,13 +73,6 @@ class Object(object):
     def Sensi(self, E, mchi):
         return self.Spectrum(E, mchi)*self.Aeff(E)
 
-    ## def SensiIntegral(self, mchi):
-    ##     def integral(mchi):
-    ##         return quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
-    ##                     limit=50,full_output=1)[0]
-    ##     int_v = np.vectorize(integral)
-    ##     return int_v(mchi)
-
     def SensiIntegral_scalar(self, mchi):
         return quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
                         limit=50,full_output=1)[0]
@@ -89,10 +81,6 @@ class Object(object):
         vectorresult = np.vectorize(self.SensiIntegral_scalar)
         return vectorresult(mchi)
 
-    ## def SensiIntegral(self, mchi):
-    ##     res =  quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi,),
-    ##                 limit=50,full_output=1)[0]
-    ##     return res
    
 
     # MOST important:
@@ -105,8 +93,6 @@ class Object(object):
         """
         Ns = ((sigmav / (8.*pi*mchi**2)) * self.Tobs * self.Jbar *
               self.SensiIntegralArray[mchi] )
-#              quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
-#                   limit=20,full_output=1)[0])
 
         # Use log PMF for faster calculation:
         logPois1 = poisson.logpmf(self.Non, (Ns+self.alpha*self.Noff))
