@@ -224,13 +224,13 @@ with Timer():
 ## sys.exit()
 ## # ... nee, Quatsch. (Oder?!)
 
-def ComblogLhood(mchi, sigmav):
+def ComblogLhood(mchi, sigmav, jbartest):
     """ Combined (minus) log likelihood. THE master function."""
-    return -sum(o.logLhood(sigmav, mchi) for o in CombinationList)
+    return -sum(o.logLhood(sigmav, mchi)*o.JbarPDF(jbartest) for o in CombinationList)
 
 print 'CL calling time: '
 with Timer():
-    ComblogLhood(1e-22, 1000.)
+    ComblogLhood(1e-22, 1000., 1e19)
 print 
     
 # Vectorize the comb. lhood function? Yes!
@@ -253,7 +253,7 @@ mv, sv = np.meshgrid(mchis, sigmavs) # Note: indexing rules!
 
 print '\nCL Array calling time: '
 with Timer():
-    CLArray = CL_vec(mv, sv)
+    CLArray = CL_vec(mv, sv, 1e19)
 ## print '\n CLArray(mv, sv):'
 ## print CLArray
 ## print
@@ -272,6 +272,11 @@ CLA_cut = np.where(CLArray < 100., CLArray, 100.)
 # Array of sigmav limit values:
 UL_CombLhood = np.zeros_like(mchis)
 
+
+# Bounds:
+bds = (np.atleast_1d(np.array([0.])), np.atleast_1d(np.array([1e-15])))
+print '\nMinimization bds = ', bds
+
 ## 1D along each mchi:
 for m in np.arange(mchis.size): # loop over "mchis" indices, not entries
     CLmin_m = CLA_cut[:, m].min()
@@ -283,11 +288,9 @@ for m in np.arange(mchis.size): # loop over "mchis" indices, not entries
     ##     print 'sigmav, CLinterpol(sigmav):', s, CLinterpol(s)
     #sigmav_min = fmin(CLinterpol, 1e-23) # returns x, not f(x)!
     #sigmav_min = minimize(CLinterpol, 1e-23, method="L-BFGS-B",
-    # Bounds:
-    bds = (np.atleast_1d(np.array([0.])), np.atleast_1d(np.array([1e-15])))
-    print 'bds = ', bds
-    sigmav_min = minimize(CLinterpol, np.atleast_1d(np.array(1e-23)), method="TNC",
-                          bounds=bds) # returns x, not f(x)!
+
+    sigmav_min = minimize(CLinterpol, np.atleast_1d(np.array(1e-23)), method="TNC")#,
+                          #bounds=bds) # returns x, not f(x)!
 
     def CLsolve(s):
         DeltalogL = 2.71 #..???????
