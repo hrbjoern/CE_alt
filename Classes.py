@@ -40,6 +40,8 @@ class Object(object):
                 #self.Aeffdata[:,1]*=0.8 # Fudge efficiency factor
 
         self.Tobs = Tobs*3600.
+        # Introducing Jbar PDF: 
+        self.JbarError = 0.5 # half a dec error for the moment
         self.Jbar = Jbar
         self.Non = Non
         self.Noff = Noff
@@ -51,6 +53,8 @@ class Object(object):
         self.Spectrum = getattr(PhotonSpectra, spectrum)  # seems better
         # To be used for sensitivity integration/Exclusion.py:
         self.SensiIntegralArray = np.zeros(1000000)
+        # To be used for likelihood:
+        self.logPois2 = poisson.logpmf(self.Noff, self.Noff)
 
                 
     def printObject(self):
@@ -70,8 +74,8 @@ class Object(object):
         else:
             return 0.
         
-    def Sensi(self, E, mchi):
-        return self.Spectrum(E, mchi)*self.Aeff(E)
+    def Sensi(self, E, mchi): 
+       return self.Spectrum(E, mchi)*self.Aeff(E)
 
     def SensiIntegral_scalar(self, mchi):
         return quad(self.Sensi, self.Eth, 1.01*mchi, args=(mchi),
@@ -81,9 +85,11 @@ class Object(object):
         vectorresult = np.vectorize(self.SensiIntegral_scalar)
         return vectorresult(mchi)
 
-   
+    def JbarPDF(self):
+        return 1.
 
     # MOST important:
+    #    def logLhood(self, sigmav, mchi, jbar):
     def logLhood(self, sigmav, mchi):
         """Most important! This is each object's log likelihood function.
 
@@ -91,14 +97,19 @@ class Object(object):
         need not be called as function parameters.
         Poissonian PMF: poisson.pmf(k,mu) = exp(-mu) * mu**k / k!
         """
+        # Oldish:
         Ns = ((sigmav / (8.*pi*mchi**2)) * self.Tobs * self.Jbar *
               self.SensiIntegralArray[mchi] )
+        # Now: make logLhood a function of jbar!
+        #Ns = ((sigmav / (8.*pi*mchi**2)) * self.Tobs * jbar *
+        #      self.SensiIntegralArray[mchi] )
 
-        # Use log PMF for faster calculation:
+        # Use log PMF for faster (?) calculation:
         logPois1 = poisson.logpmf(self.Non, (Ns+self.alpha*self.Noff))
-        logPois2 = poisson.logpmf(self.Noff, self.Noff)
-        return logPois1+logPois2
-
+        #logPois2 = poisson.logpmf(self.Noff, self.Noff)
+        # (moved to __init__ for faster running
+        return logPois1+self.logPois2
+        
     
     def ULsigmav(self,mchi):
         """ Calculates UL on sigmav with the object's member spectrum."""

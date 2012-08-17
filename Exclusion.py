@@ -19,7 +19,7 @@ import time
 
 from math import pi
 from scipy.integrate import quad
-from scipy.optimize import fmin, fsolve #, minimize <- scipy 0.11!
+from scipy.optimize import fmin, fsolve, minimize #<- scipy 0.11!
 from scipy.interpolate import interp2d, interp1d
 from scipy import interp
 from pprint import pprint
@@ -218,9 +218,14 @@ with Timer():
     # .. doesnt really work. Array indexing is screwed up.
     # (And the time gain isnt so great.)
 
+## #Jbar array:
+## Jbars = np.zeros(len(CombinationList))
+## print Jbars
+## sys.exit()
+## # ... nee, Quatsch. (Oder?!)
 
 def ComblogLhood(mchi, sigmav):
-    """ Combined log likelihood. THE master function."""
+    """ Combined (minus) log likelihood. THE master function."""
     return -sum(o.logLhood(sigmav, mchi) for o in CombinationList)
 
 print 'CL calling time: '
@@ -276,11 +281,16 @@ for m in np.arange(mchis.size): # loop over "mchis" indices, not entries
         return interp(sigmav, sigmavs, CLA_cut[:, m]) # this is the right index!
     ## for s in sigmavs:
     ##     print 'sigmav, CLinterpol(sigmav):', s, CLinterpol(s)
-
-    sigmav_min = fmin(CLinterpol, 1e-23) # returns x, not f(x)!
+    #sigmav_min = fmin(CLinterpol, 1e-23) # returns x, not f(x)!
+    #sigmav_min = minimize(CLinterpol, 1e-23, method="L-BFGS-B",
+    # Bounds:
+    bds = (np.atleast_1d(np.array([0.])), np.atleast_1d(np.array([1e-15])))
+    print 'bds = ', bds
+    sigmav_min = minimize(CLinterpol, np.atleast_1d(np.array(1e-23)), method="TNC",
+                          bounds=bds) # returns x, not f(x)!
 
     def CLsolve(s):
-        DeltalogL = 2. #..???????
+        DeltalogL = 2.71 #..???????
         return CLinterpol(s)-DeltalogL-CLmin_m # fsolve for f(x) = 0
     sigmav_minplus2 = fsolve(CLsolve, 1e-23)
 
