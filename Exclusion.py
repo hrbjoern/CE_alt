@@ -145,7 +145,11 @@ SumOfNon = 0.
 SumOfNoff = 0.
 SumOfAlphaNoff = 0.
 
-CombinationList = (Segue1M, Segue1V, SculptorIso, Willman1V,Sgr)
+CombinationList = (Segue1M, Segue1V, SculptorIso, Willman1V, Sgr)
+## print '\nCombinationList =', CombinationList
+## for o in CombinationList:
+##     print CombinationList.index(o)
+#sys.exit()
 #CombinationList = np.array([Segue1M, Segue1V, SculptorIso, Willman1V,Sgr], dtype=np.object)
 # ... doesnt make a difference.
 #CombinationList = (Segue1M, Segue1V, SculptorIso, Willman1V)
@@ -218,24 +222,66 @@ with Timer():
     # .. doesnt really work. Array indexing is screwed up.
     # (And the time gain isnt so great.)
 
+## print '\n Und noch einmal der Test:'
+## for o in CombinationList:
+##     for mchi in mchis:
+##         print 'o.SensiIntegralArray[%.2f] = %.2f' %(mchi, o.SensiIntegralArray[mchi])
+
 ## #Jbar array:
 ## Jbars = np.zeros(len(CombinationList))
 ## print Jbars
 ## sys.exit()
 ## # ... nee, Quatsch. (Oder?!)
 
-def ComblogLhood(mchi, sigmav, jbartest):
-    """ Combined (minus) log likelihood. THE master function."""
-    return -sum(o.logLhood(sigmav, mchi)*o.JbarPDF(jbartest) for o in CombinationList)
+    
+# Jbar testing list:
+JbarList = range(len(CombinationList))
+for i in JbarList:
+    JbarList[i] = 1e21
+    ## print JbarList[i]
+## print JbarList # ... funktioniert!
 
+    
+def ComblogLhood(sigmav, mchi, jbartest=JbarList):
+    """ Combined (minus) log likelihood. THE master function."""
+    return -sum(o.logLhood(sigmav, mchi, jbartest[CombinationList.index(o)])
+                +o.logJbarPDF(jbartest[CombinationList.index(o)]) for o in CombinationList)
+
+## ollsum = 0.
+## oljsum = 0.
+## print 'CL indexing test:'
+## for o in CombinationList:
+##     print 'JbarList[CombinationList.index(o)] = ', JbarList[CombinationList.index(o)]
+##     oll = o.logLhood(1e-22, mchis[-2], JbarList[CombinationList.index(o)]) 
+##     olj = o.logJbarPDF(JbarList[CombinationList.index(o)])
+##     print 'o.logLhood, o.logJbarPDF = ', oll, olj
+##     ollsum += oll
+##     oljsum += olj
+## print 'ollsum, oljsum = ', ollsum, oljsum
+## print
+
+    
 print 'CL calling time: '
 with Timer():
-    ComblogLhood(1e-22, 1000., 1e19)
-print 
+    clout1 = ComblogLhood(1e-24, mchis[-2])
+print 'clout1 = ', clout1 
+print
+
+# Minimization test:
+x0_List = [1e-24, mchis[-2]]
+x0_List.extend(JbarList)
+print 'x0_List =', x0_List
+x0 = np.array(x0_List)
+print 'x0 = ',  x0
+minresult = minimize(ComblogLhood, x0[0], args=(x0[1], x0[2:]))
+print 'minresult.x = ', minresult.x
+print 'minresult.message = ', minresult.message
+
+
+
     
 # Vectorize the comb. lhood function? Yes!
 CL_vec = np.vectorize(ComblogLhood)
-
 
 # np.array for sigmav values: (over which to interpolate)
 sigmav_steps = esteps # make same-dim array
@@ -251,60 +297,9 @@ mv, sv = np.meshgrid(mchis, sigmavs) # Note: indexing rules!
 ## print sv
 ## print
 
-print '\nCL Array calling time: '
-with Timer():
-    CLArray = CL_vec(mv, sv, 1e19)
-## print '\n CLArray(mv, sv):'
-## print CLArray
-## print
 
 
-
-# Interpolation:
-
-# Cut off infinities in CLArray:
-CLA_cut = np.where(CLArray < 100., CLArray, 100.)
-## print '\n CLArray, neu: CLA_cut'
-## print CLA_cut
-## print 'CLA_cut.shape: ', CLA_cut.shape
-## print
-
-# Array of sigmav limit values:
-UL_CombLhood = np.zeros_like(mchis)
-
-
-# Bounds:
-bds = (np.atleast_1d(np.array([0.])), np.atleast_1d(np.array([1e-15])))
-print '\nMinimization bds = ', bds
-
-## 1D along each mchi:
-for m in np.arange(mchis.size): # loop over "mchis" indices, not entries
-    CLmin_m = CLA_cut[:, m].min()
-    #CLmax_m = CLA_cut[:, m].max()
-
-    def CLinterpol(sigmav):
-        return interp(sigmav, sigmavs, CLA_cut[:, m]) # this is the right index!
-    ## for s in sigmavs:
-    ##     print 'sigmav, CLinterpol(sigmav):', s, CLinterpol(s)
-    #sigmav_min = fmin(CLinterpol, 1e-23) # returns x, not f(x)!
-    #sigmav_min = minimize(CLinterpol, 1e-23, method="L-BFGS-B",
-
-    sigmav_min = minimize(CLinterpol, np.atleast_1d(np.array(1e-23)), method="TNC")#,
-                          #bounds=bds) # returns x, not f(x)!
-
-    def CLsolve(s):
-        DeltalogL = 2.71 #..???????
-        return CLinterpol(s)-DeltalogL-CLmin_m # fsolve for f(x) = 0
-    sigmav_minplus2 = fsolve(CLsolve, 1e-23)
-
-    # Fill array of sigmav limits:
-    UL_CombLhood[m] = sigmav_minplus2
-
-
-
-# List of combined limits: entries are arrays 
-CombList = (UL_bbbarComb, UL_CombLhood)
-
+sys.exit()
 
 
 ########################################################
@@ -392,3 +387,60 @@ sys.exit()
 ## Prozent = 100.*float(Fehler)/float(von)
 ## print 'This occured %i (out of %i) times, i.e. %.1f%% of the time.\n' \
 ##       % (Fehler, von, Prozent)
+
+
+############################################################
+# Alter Minimierungsgedoens:
+############################################################
+
+## print '\nCL Array calling time: '
+## with Timer():
+##     CLArray = CL_vec(mv, sv, JbarList)
+## ## print '\n CLArray(mv, sv):'
+## ## print CLArray
+## ## print
+
+## # Interpolation:
+
+## # Cut off infinities in CLArray:
+## CLA_cut = np.where(CLArray < 100., CLArray, 100.)
+## ## print '\n CLArray, neu: CLA_cut'
+## ## print CLA_cut
+## ## print 'CLA_cut.shape: ', CLA_cut.shape
+## ## print
+
+## # Array of sigmav limit values:
+## UL_CombLhood = np.zeros_like(mchis)
+
+
+## # Bounds:
+## bds = (np.atleast_1d(np.array([0.])), np.atleast_1d(np.array([1e-15])))
+## print '\nMinimization bds = ', bds
+
+## ## 1D along each mchi:
+## for m in np.arange(mchis.size): # loop over "mchis" indices, not entries
+##     CLmin_m = CLA_cut[:, m].min()
+##     #CLmax_m = CLA_cut[:, m].max()
+
+##     def CLinterpol(sigmav):
+##         return interp(sigmav, sigmavs, CLA_cut[:, m]) # this is the right index!
+##     ## for s in sigmavs:
+##     ##     print 'sigmav, CLinterpol(sigmav):', s, CLinterpol(s)
+##     #sigmav_min = fmin(CLinterpol, 1e-23) # returns x, not f(x)!
+##     #sigmav_min = minimize(CLinterpol, 1e-23, method="L-BFGS-B",
+
+##     sigmav_min = minimize(CLinterpol, np.atleast_1d(np.array(1e-23)), method="TNC")#,
+##                           #bounds=bds) # returns x, not f(x)!
+
+##     def CLsolve(s):
+##         DeltalogL = 2.71 #..???????
+##         return CLinterpol(s)-DeltalogL-CLmin_m # fsolve for f(x) = 0
+##     sigmav_minplus2 = fsolve(CLsolve, 1e-23)
+
+##     # Fill array of sigmav limits:
+##     UL_CombLhood[m] = sigmav_minplus2
+
+
+
+## # List of combined limits: entries are arrays 
+## CombList = (UL_bbbarComb, UL_CombLhood)

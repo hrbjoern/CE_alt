@@ -1,6 +1,6 @@
 #from PhotonSpectra import *
 import PhotonSpectra
-from math import pi, exp
+from math import pi, exp, log, log10, sqrt
 from scipy.integrate import quad, quadrature
 from scipy import interpolate
 from scipy.stats import poisson, lognorm
@@ -85,8 +85,10 @@ class Object(object):
         vectorresult = np.vectorize(self.SensiIntegral_scalar)
         return vectorresult(mchi)
 
-    def JbarPDF(self, jbartestvalue):
-        return 1.
+    def logJbarPDF(self, Jbartestvalue):
+        return log((1./(sqrt(2*pi)*log(10)*Jbartestvalue*self.JbarError) *
+                exp(-0.5*(log10(Jbartestvalue) - log10(self.Jbar))**2/self.JbarError**2) ))
+        #return 1.
 
     # MOST important:
     #    def logLhood(self, sigmav, mchi, jbar):
@@ -103,8 +105,13 @@ class Object(object):
         # Now: make logLhood a function of jbar!
         if jbar is None: # because self.Jbar as default argument doesn't work
             jbar=self.Jbar
+        if self.SensiIntegralArray[mchi] < 1.:
+            print 'mchi = ', mchi
+            print 'sensi: ', self.SensiIntegralArray[mchi]
+            
         Ns = ((sigmav / (8.*pi*mchi**2)) * self.Tobs * jbar *
               self.SensiIntegralArray[mchi] )
+        #print 'Ns = ', Ns
 
         # Use log PMF for faster (?) calculation:
         logPois1 = poisson.logpmf(self.Non, (Ns+self.alpha*self.Noff))
