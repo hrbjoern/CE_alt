@@ -1,6 +1,7 @@
 #from PhotonSpectra import *
 import PhotonSpectra
-from math import pi, exp, log, log10, sqrt
+#from math import pi, exp, log, log10, sqrt
+from numpy import pi, exp, log, log10, sqrt
 from scipy.integrate import quad, quadrature
 from scipy import interpolate
 from scipy.stats import poisson, lognorm
@@ -91,13 +92,18 @@ class Object(object):
         #return 1.
 
     # MOST important:
-    #    def logLhood(self, sigmav, mchi, jbar):
     def logLhood(self, sigmav, mchi, jbar=None):
+    #def logLhood(self, ParamArray)
         """Most important! This is each object's log likelihood function.
 
         Note: The data parameters Non, Noff, alpha are class members - hence they 
         need not be called as function parameters.
         Poissonian PMF: poisson.pmf(k,mu) = exp(-mu) * mu**k / k!
+
+        ## ParamArray:
+        ## [0] = sigmav
+        ## [1] = mchi
+        ## [2] = jbarArray
         """
         # Oldish:
         #Ns = ((sigmav / (8.*pi*mchi**2)) * self.Tobs * self.Jbar *
@@ -105,12 +111,15 @@ class Object(object):
         # Now: make logLhood a function of jbar!
         if jbar is None: # because self.Jbar as default argument doesn't work
             jbar=self.Jbar
-        if self.SensiIntegralArray[mchi] < 1.:
+        if np.isnan(mchi):
+            print 'mchi is nan:', mchi
+            sys.exit()
+        if self.SensiIntegralArray[int(mchi)] < 1.:
             print 'mchi = ', mchi
-            print 'sensi: ', self.SensiIntegralArray[mchi]
+            print 'sensi: ', self.SensiIntegralArray[int(mchi)]
             
-        Ns = ((sigmav / (8.*pi*mchi**2)) * self.Tobs * jbar *
-              self.SensiIntegralArray[mchi] )
+        Ns = ((sigmav/(8.*pi*mchi**2)) * self.Tobs * jbar *
+              self.SensiIntegralArray[int(mchi)] )
         #print 'Ns = ', Ns
 
         # Use log PMF for faster (?) calculation:

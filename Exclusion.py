@@ -216,7 +216,7 @@ with Timer():
     # Define array of integrated sensitivities:
     for o in CombinationList:
         for mchi in mchis:
-            o.SensiIntegralArray[mchi] = o.SensiIntegral(mchi)
+            o.SensiIntegralArray[int(mchi)] = o.SensiIntegral(mchi)
             #print 'o.SensiIntegralArray[%.2f] = %.2f' %(mchi, o.SensiIntegralArray[mchi])
     #o.SensiIntegralArray = o.SensiIntegral(mchis)
     # .. doesnt really work. Array indexing is screwed up.
@@ -241,11 +241,17 @@ for i in JbarList:
     ## print JbarList[i]
 ## print JbarList # ... funktioniert!
 
-    
-def ComblogLhood(sigmav, mchi, jbartest=JbarList):
-    """ Combined (minus) log likelihood. THE master function."""
-    return -sum(o.logLhood(sigmav, mchi, jbartest[CombinationList.index(o)])
-                +o.logJbarPDF(jbartest[CombinationList.index(o)]) for o in CombinationList)
+#def ComblogLhood(np.array([sigmav, mchi, jbartest=JbarList])):
+def ComblogLhood(ParArray, mchi):
+    """ Combined (minus) log likelihood. THE master function.
+    ## ParArray:
+    ## [0] = sigmav
+    ## [1] = mchi <- in fact, NOT !!!
+    ## [1...] = jbarArray -> Note: Index+1 in sum!
+    """
+    return -sum(o.logLhood(ParArray[0], mchi, ParArray[CombinationList.index(o)+1])
+                +o.logJbarPDF(ParArray[CombinationList.index(o)+1]) for o in CombinationList)
+
 
 ## ollsum = 0.
 ## oljsum = 0.
@@ -260,22 +266,44 @@ def ComblogLhood(sigmav, mchi, jbartest=JbarList):
 ## print 'ollsum, oljsum = ', ollsum, oljsum
 ## print
 
+#TestArray = np.append([1e-24, mchis[-2]], JbarList)
+TestArray = np.append([1e-23], JbarList)
+print 'TestArray = ', TestArray
     
 print 'CL calling time: '
 with Timer():
-    clout1 = ComblogLhood(1e-24, mchis[-2])
+    clout1 = ComblogLhood(TestArray, mchis[-2])
 print 'clout1 = ', clout1 
 print
+#sys.exit()
 
 # Minimization test:
-x0_List = [1e-24, mchis[-2]]
-x0_List.extend(JbarList)
-print 'x0_List =', x0_List
-x0 = np.array(x0_List)
-print 'x0 = ',  x0
-minresult = minimize(ComblogLhood, x0[0], args=(x0[1], x0[2:]))
+print '\nMinimization test:'
+
+# Bounds: List of tuples!
+bds = [(1e-26, 1e-20)] # sigmav bounds
+for num in JbarList:
+    bds.append((1e17, 1e22))
+print '\nbds = ', bds
+#sys.exit()
+#minresult = minimize(ComblogLhood, TestArray)
+minresult = minimize(ComblogLhood, TestArray, args=(mchis[-2],), bounds=bds, 
+                     options={'maxiter':int(1e2), 'disp': True}, method='TNC')
 print 'minresult.x = ', minresult.x
 print 'minresult.message = ', minresult.message
+print 'minresult.fun = ', minresult.fun
+
+#TestArray = np.append([1e-24, mchis[-2]], JbarList)
+TestArray2 = np.append([1e-22], JbarList)
+
+print '\nMinimization test 2:'
+
+#minresult = minimize(ComblogLhood, TestArray)
+minresult2 = minimize(ComblogLhood, TestArray2, args=(mchis[-3],), bounds=bds, 
+                     options={'maxiter':int(1e2), 'disp': True}, method='L-BFGS-B')
+print 'minresult2.x = ', minresult2.x
+print 'minresult2.message = ', minresult2.message
+print 'minresult2.fun = ', minresult2.fun
 
 
 
