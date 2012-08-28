@@ -19,7 +19,7 @@ import time
 
 from math import pi
 from scipy.integrate import quad
-from scipy.optimize import fmin, fsolve, minimize #<- scipy 0.11!
+from scipy.optimize import fmin, fsolve, minimize, fmin_tnc, brute #<- scipy 0.11!
 from scipy.interpolate import interp2d, interp1d
 from scipy import interp
 from pprint import pprint
@@ -286,7 +286,12 @@ for num in JbarList:
     bds.append((1e17, 1e22))
 print '\nbds = ', bds
 #sys.exit()
-#minresult = minimize(ComblogLhood, TestArray)
+## minresult = minimize(ComblogLhood, TestArray, args=(mchis[-2],), bounds=bds,
+##                      options={'maxiter':int(1e2), 'disp': True}, method='L-BFGS-B')
+## minresult = minimize(ComblogLhood, TestArray, args=(mchis[-2],), bounds=bds,
+##                      options={'maxiter':int(1e2), 'disp': True}, method='SLSQP')
+## minresult = minimize(ComblogLhood, TestArray, args=(mchis[-2],), bounds=bds,
+##                      options={'maxiter':int(1e2), 'disp': True}, method='COBYLA')
 minresult = minimize(ComblogLhood, TestArray, args=(mchis[-2],), bounds=bds, 
                      options={'maxiter':int(1e2), 'disp': True}, method='TNC')
 print 'minresult.x = ', minresult.x
@@ -299,13 +304,17 @@ TestArray2 = np.append([1e-22], JbarList)
 print '\nMinimization test 2:'
 
 #minresult = minimize(ComblogLhood, TestArray)
-minresult2 = minimize(ComblogLhood, TestArray2, args=(mchis[-3],), bounds=bds, 
-                     options={'maxiter':int(1e2), 'disp': True}, method='L-BFGS-B')
-print 'minresult2.x = ', minresult2.x
-print 'minresult2.message = ', minresult2.message
-print 'minresult2.fun = ', minresult2.fun
+minresult2 = fmin_tnc(ComblogLhood, TestArray2, args=(mchis[-3],), approx_grad=1,
+                      epsilon=1., bounds=bds, disp=5, accuracy=0.01, ftol = 0.1)
+print 'minresult2 = ', minresult2
+## print 'minresult2.x = ', minresult2.x
+## print 'minresult2.message = ', minresult2.message
+## print 'minresult2.fun = ', minresult2.fun
 
+print '\nMinimization test 3:'
 
+minresult3 = brute(ComblogLhood, ranges=bds, args=(mchis[-3],))
+print minresult3
 
     
 # Vectorize the comb. lhood function? Yes!
