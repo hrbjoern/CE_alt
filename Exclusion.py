@@ -19,7 +19,8 @@ import time
 
 from math import pi
 from scipy.integrate import quad
-from scipy.optimize import fmin, fsolve, minimize, fmin_tnc, brute #<- scipy 0.11!
+from scipy.optimize import fmin, minimize, fmin_tnc, brute # minimization (scipy >=0.11!)
+from scipy.optimize import fsolve, root, brentq # root finding
 from scipy.interpolate import interp2d, interp1d
 from scipy import interp
 from pprint import pprint
@@ -149,12 +150,6 @@ CombinationList = (Segue1M, Segue1V, SculptorIso, Willman1V, Sgr)
 ## print '\nCombinationList =', CombinationList
 ## for o in CombinationList:
 ##     print CombinationList.index(o)
-#sys.exit()
-#CombinationList = np.array([Segue1M, Segue1V, SculptorIso, Willman1V,Sgr], dtype=np.object)
-# ... doesnt make a difference.
-#CombinationList = (Segue1M, Segue1V, SculptorIso, Willman1V)
-#CombinationList = (Segue1V, Segue1V, Segue1V, Segue1V)
-#CombinationList = (Segue1M, Segue1M)
 
 for o in CombinationList:
      SumOfNul += o.Nul
@@ -202,7 +197,7 @@ print '\nUL_bbbarComb = ', UL_bbbarComb
 ########################################################
 # "Likelihood" Combination of the limits:
 ########################################################
-# (still needs "CombinationList" from above)
+# (still needs "CombinationList" from above!)
 print '\nStart Combination: \n'
 
 # Timing tests:
@@ -218,56 +213,36 @@ with Timer():
         for mchi in mchis:
             o.SensiIntegralArray[int(mchi)] = o.SensiIntegral(mchi)
             #print 'o.SensiIntegralArray[%.2f] = %.2f' %(mchi, o.SensiIntegralArray[mchi])
-    #o.SensiIntegralArray = o.SensiIntegral(mchis)
-    # .. doesnt really work. Array indexing is screwed up.
-    # (And the time gain isnt so great.)
-
-## print '\n Und noch einmal der Test:'
-## for o in CombinationList:
-##     for mchi in mchis:
-##         print 'o.SensiIntegralArray[%.2f] = %.2f' %(mchi, o.SensiIntegralArray[mchi])
-
-## #Jbar array:
-## Jbars = np.zeros(len(CombinationList))
-## print Jbars
-## sys.exit()
-## # ... nee, Quatsch. (Oder?!)
 
     
 # Jbar testing list:
 JbarList = range(len(CombinationList))
 for i in JbarList:
-    JbarList[i] = 1e21
-    ## print JbarList[i]
-## print JbarList # ... funktioniert!
+    #JbarList[i] = 1e21
+    JbarList[i] = 19. # (using log values instead!)
+    
 
-#def ComblogLhood(np.array([sigmav, mchi, jbartest=JbarList])):
+# IMPORTANT:
 def ComblogLhood(ParArray, mchi):
     """ Combined (minus) log likelihood. THE master function.
     ## ParArray:
-    ## [0] = sigmav
-    ## [1] = mchi <- in fact, NOT !!!
-    ## [1...] = jbarArray -> Note: Index+1 in sum!
+    ## [0] = log10(sigmav)
+    ## [1...] = log10jbarArray -> Note: Index+1 in sum!
     """
-    return -sum(o.logLhood(ParArray[0], mchi, ParArray[CombinationList.index(o)+1])
-                +o.logJbarPDF(ParArray[CombinationList.index(o)+1]) for o in CombinationList)
+    # Using logarithmic parameters:
+    return -sum(o.logLhood(10.**ParArray[0], mchi, 10.**ParArray[CombinationList.index(o)+1])
+                +o.logJbarPDF(10.**ParArray[CombinationList.index(o)+1]) for o in CombinationList)
 
+def ComblogLhood_sv(JbarArray, log10sigmav, mchi):
+    """ Combined (minus) log likelihood. The master function, as a function of sigmav.
+    ## JbarArray:
+    ## [0...] = log10jbarArray -> Note: NO index+1 in sum!
+    """
+    # Using logarithmic parameters:
+    return -sum(o.logLhood(10.**log10sigmav, mchi, 10.**JbarArray[CombinationList.index(o)])
+                +o.logJbarPDF(10.**JbarArray[CombinationList.index(o)]) for o in CombinationList)
 
-## ollsum = 0.
-## oljsum = 0.
-## print 'CL indexing test:'
-## for o in CombinationList:
-##     print 'JbarList[CombinationList.index(o)] = ', JbarList[CombinationList.index(o)]
-##     oll = o.logLhood(1e-22, mchis[-2], JbarList[CombinationList.index(o)]) 
-##     olj = o.logJbarPDF(JbarList[CombinationList.index(o)])
-##     print 'o.logLhood, o.logJbarPDF = ', oll, olj
-##     ollsum += oll
-##     oljsum += olj
-## print 'ollsum, oljsum = ', ollsum, oljsum
-## print
-
-#TestArray = np.append([1e-24, mchis[-2]], JbarList)
-TestArray = np.append([1e-23], JbarList)
+TestArray = np.append(-21., JbarList)
 print 'TestArray = ', TestArray
     
 print 'CL calling time: '
@@ -279,64 +254,132 @@ print
 
 # Minimization test:
 print '\nMinimization test:'
+print '(not any longer)\n'
+## print 'Starting values:'
+## print TestArray
 
-# Bounds: List of tuples!
-bds = [(1e-26, 1e-20)] # sigmav bounds
-for num in JbarList:
-    bds.append((1e17, 1e22))
-print '\nbds = ', bds
-#sys.exit()
-## minresult = minimize(ComblogLhood, TestArray, args=(mchis[-2],), bounds=bds,
-##                      options={'maxiter':int(1e2), 'disp': True}, method='L-BFGS-B')
-## minresult = minimize(ComblogLhood, TestArray, args=(mchis[-2],), bounds=bds,
-##                      options={'maxiter':int(1e2), 'disp': True}, method='SLSQP')
-## minresult = minimize(ComblogLhood, TestArray, args=(mchis[-2],), bounds=bds,
-##                      options={'maxiter':int(1e2), 'disp': True}, method='COBYLA')
-minresult = minimize(ComblogLhood, TestArray, args=(mchis[-2],), bounds=bds, 
-                     options={'maxiter':int(1e2), 'disp': True}, method='TNC')
-print 'minresult.x = ', minresult.x
-print 'minresult.message = ', minresult.message
-print 'minresult.fun = ', minresult.fun
+## # Bounds: List of tuples!
+## bds = [(-26., -20.)] # sigmav bounds
+## for num in JbarList:
+##     bds.append((16., 22.))
+## print 'Bounds = ', bds
 
-#TestArray = np.append([1e-24, mchis[-2]], JbarList)
-TestArray2 = np.append([1e-22], JbarList)
+## minresult = minimize(ComblogLhood, TestArray, args=(mchis[-2],), bounds=bds, 
+##                      #options={'maxiter':int(1e2), 'disp': True},
+##                      method='TNC')
+## print '\nminresult.x = ', minresult.x
+## print 'minresult.message = ', minresult.message
+## print 'minresult.fun = ', minresult.fun
 
-print '\nMinimization test 2:'
+## print '\nMinimization test 2:'
+## print 'Starting values:'
+## TestArray2 = np.append(-22., JbarList)
+## print TestArray2
 
-#minresult = minimize(ComblogLhood, TestArray)
-minresult2 = fmin_tnc(ComblogLhood, TestArray2, args=(mchis[-3],), approx_grad=1,
-                      epsilon=1., bounds=bds, disp=5, accuracy=0.01, ftol = 0.1)
-print 'minresult2 = ', minresult2
-## print 'minresult2.x = ', minresult2.x
-## print 'minresult2.message = ', minresult2.message
+## minresult2 = minimize(ComblogLhood, TestArray2, args=(mchis[-2],), bounds=bds, 
+##                      #options={'maxiter':int(1e2), 'disp': True},
+##                      method='TNC')
+## print '\nminresult2.x = ', minresult2.x
 ## print 'minresult2.fun = ', minresult2.fun
+## ## minresult2 = fmin_tnc(ComblogLhood, TestArray2, args=(mchis[-3],), approx_grad=1,
+## ##                       epsilon=1., bounds=bds, disp=5, accuracy=0.01, ftol = 0.1)
+## ## print 'minresult2 = ', minresult2
 
-print '\nMinimization test 3:'
+## print '\nMinimization test 3:'
+## print
+## print 'For sigmav in (-26, -19), mchi=mchis[-2] ...:\n'
 
-minresult3 = brute(ComblogLhood, ranges=bds, args=(mchis[-3],))
-print minresult3
+sigmavTestRange = np.arange(-26, -18, 0.5)
+JBA = np.array(JbarList) # 19's
+JBbds = []
+for num in JbarList:
+    JBbds.append((16., 22.))
+
+## for sv in sigmavTestRange:
+##     print 'sigmav = ', sv
+##     minresult3 = minimize(ComblogLhood_sv, JBA, args=(sv, mchis[-2],), bounds=JBbds, 
+##                   method='TNC')
+##     print 'minresult3.x = ', minresult3.x
+##     print 'minresult3.fun = ', minresult3.fun
+##     print
+
+
+## print '\nMinimization test 4:' ## Resultat: in 2012-08-28_Exclusion_Minimize-out.txt
+## print
+## print 'For sigmav in (-26, -19), mchi in ...:\n'
+
+## for mchi in mchis:
+##     print 'mchi = ', mchi
+##     for sv in sigmavTestRange:
+##         print 'sigmav = ', sv
+##         minresult4 = minimize(ComblogLhood_sv, JBA, args=(sv, mchi,), bounds=JBbds, 
+##                               method='TNC')
+##         print 'minresult4.x = ', minresult4.x
+##         print 'minresult4.fun = ', minresult4.fun
+##         print
+
+
+# Find sigmav values where  Delta(-2 ln PL) = 2.706 :
+print 'Find sigmav values where  Delta(-2 ln PL) = 2.706 : PRUEFEN!!!'
+CLmin = minimize(ComblogLhood_sv, JBA, args=(-26, 200.,), bounds=JBbds, 
+                  method='TNC').fun
+print '\nCLmin = ', CLmin
+
+def findRoot(sigmav, mchi):
+    CLaktuell = minimize(ComblogLhood_sv, JBA, args=(sigmav, mchi,), bounds=JBbds, 
+                         method='TNC').fun
+    CLdiff = CLaktuell-CLmin-(2.706/2.)
+    ## if abs(CLdiff) < 0.1:
+    ##     print 'CLaktuell = ', CLaktuell
+    return CLdiff
+
+# Array of sigmav limit values:
+UL_CombLhood = np.zeros_like(mchis)
+
+print '\nStarting to find the upper limits:'
+
+for mchi in mchis:
+    print 'mchi = ', mchi
+    sigmav_UL = brentq(findRoot, -26, -18, # bracketing values
+                       args=(mchi,),
+                       #full_output=True,
+                       #maxfev = 1000, 
+                       # factor=0.1
+                       )
+    print 'sigmav_UL = ', sigmav_UL
+
+    # Fill array of sigmav limits:
+    UL_CombLhood[(mchis.tolist()).index(mchi)] = 10.**(sigmav_UL)
+
+print '\nResult: Limits from full likelihood'
+print 'UL_CombLhood = ', UL_CombLhood
+
+
+# List of combined limits: entries are arrays 
+CombList = (UL_bbbarComb, UL_CombLhood)
+
 
     
-# Vectorize the comb. lhood function? Yes!
-CL_vec = np.vectorize(ComblogLhood)
+## # Vectorize the comb. lhood function? Yes!
+## CL_vec = np.vectorize(ComblogLhood)
 
-# np.array for sigmav values: (over which to interpolate)
-sigmav_steps = esteps # make same-dim array
-sigmavs = np.logspace(-26, -20, sigmav_steps)
-#print 'sigmavs = ', sigmavs
+## # np.array for sigmav values: (over which to interpolate)
+## sigmav_steps = esteps # make same-dim array
+## sigmavs = np.logspace(-26, -20, sigmav_steps)
+## #print 'sigmavs = ', sigmavs
 
-# 2D-valued array of sigmavs and mchis: Works! :)
-mv, sv = np.meshgrid(mchis, sigmavs) # Note: indexing rules!
-
-
-## print 'meshgrid(s): mv, sv'
-## print mv
-## print sv
-## print
+## # 2D-valued array of sigmavs and mchis: Works! :)
+## mv, sv = np.meshgrid(mchis, sigmavs) # Note: indexing rules!
 
 
+## ## print 'meshgrid(s): mv, sv'
+## ## print mv
+## ## print sv
+## ## print
 
-sys.exit()
+
+
+#sys.exit()
 
 
 ########################################################

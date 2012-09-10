@@ -114,13 +114,12 @@ class Object(object):
         if np.isnan(mchi):
             print 'mchi is nan:', mchi
             sys.exit()
-        if self.SensiIntegralArray[int(mchi)] < 1.:
-            print 'mchi = ', mchi
-            print 'sensi: ', self.SensiIntegralArray[int(mchi)]
+        ## if self.SensiIntegralArray[int(mchi)] < 1.:
+        ##     print 'mchi = ', mchi
+        ##     print 'sensi: ', self.SensiIntegralArray[int(mchi)]
             
         Ns = ((sigmav/(8.*pi*mchi**2)) * self.Tobs * jbar *
               self.SensiIntegralArray[int(mchi)] )
-        #print 'Ns = ', Ns
 
         # Use log PMF for faster (?) calculation:
         logPois1 = poisson.logpmf(self.Non, (Ns+self.alpha*self.Noff))

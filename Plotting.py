@@ -120,8 +120,8 @@ def plotComb():
 
     ax1.plot(mchis, CombList[0], color='black', lw=3, 
              linestyle='dotted', label='Simply combined limit')
-    ax1.plot(mchis, CombList[1], color='red', lw=4, 
-             linestyle='dashed', label='Combined l\'hood limit')
+    ax1.plot(mchis, CombList[1], color='magenta', lw=4, 
+             linestyle='dashed', label='Combined l\'hood limit, with Jbar PDFs')
     
     plt.legend(loc=4,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
     plt.show()
