@@ -289,7 +289,7 @@ print '(not any longer)\n'
 ## print
 ## print 'For sigmav in (-26, -19), mchi=mchis[-2] ...:\n'
 
-sigmavTestRange = np.arange(-26, -18, 0.5)
+sigmavTestRange = np.arange(-26, -18, (26.-18.)/esteps)
 JBA = np.array(JbarList) # 19's
 JBbds = []
 for num in JbarList:
@@ -308,22 +308,45 @@ for num in JbarList:
 ## print
 ## print 'For sigmav in (-26, -19), mchi in ...:\n'
 
-## for mchi in mchis:
-##     print 'mchi = ', mchi
-##     for sv in sigmavTestRange:
-##         print 'sigmav = ', sv
-##         minresult4 = minimize(ComblogLhood_sv, JBA, args=(sv, mchi,), bounds=JBbds, 
-##                               method='TNC')
-##         print 'minresult4.x = ', minresult4.x
-##         print 'minresult4.fun = ', minresult4.fun
-##         print
+
+
+print '\n Testing (and plotting) the profile likelihood:'
+
+# 2-dim. CL array:
+CLmins = np.empty((len(mchis), len(sigmavTestRange)))
+
+for mchi in mchis:
+    #print 'mchi = ', mchi
+    mindex = (mchis.tolist()).index(mchi)
+    for sv in sigmavTestRange:
+        #print 'sigmav = ', sv
+        svindex = (sigmavTestRange.tolist()).index(sv)
+        minresult4 = minimize(ComblogLhood_sv, JBA, args=(sv, mchi,), bounds=JBbds, 
+                              method='TNC').fun
+        #print 'minresult4 =', minresult4
+        CLmins[mindex][svindex] = minresult4
+
+
+print 'CLmins array:'
+print '(not printed anymore)\n'
+#pprint(CLmins)
+
+pickle.dump(CLmins, open('saveCLmins.p','wb'))
+
+
+#sys.exit()
+
+print
+print
 
 
 # Find sigmav values where  Delta(-2 ln PL) = 2.706 :
-print 'Find sigmav values where  Delta(-2 ln PL) = 2.706 : PRUEFEN!!!'
-CLmin = minimize(ComblogLhood_sv, JBA, args=(-26, 200.,), bounds=JBbds, 
+print 'Find sigmav values where  Delta(-2 ln PL) = 2.706 : PRUEFEN!!!\n'
+CLmin = minimize(ComblogLhood_sv, JBA, args=(-26, 2000.,), bounds=JBbds, 
                   method='TNC').fun
-print '\nCLmin = ', CLmin
+print 'For logsv =-26, mchi=2000:'
+print 'CLmin = ', CLmin
+
 
 def findRoot(sigmav, mchi):
     CLaktuell = minimize(ComblogLhood_sv, JBA, args=(sigmav, mchi,), bounds=JBbds, 
@@ -339,14 +362,14 @@ UL_CombLhood = np.zeros_like(mchis)
 print '\nStarting to find the upper limits:'
 
 for mchi in mchis:
-    print 'mchi = ', mchi
+    #print 'mchi = ', mchi
     sigmav_UL = brentq(findRoot, -26, -18, # bracketing values
                        args=(mchi,),
                        #full_output=True,
                        #maxfev = 1000, 
                        # factor=0.1
                        )
-    print 'sigmav_UL = ', sigmav_UL
+    #print 'sigmav_UL = ', sigmav_UL
 
     # Fill array of sigmav limits:
     UL_CombLhood[(mchis.tolist()).index(mchi)] = 10.**(sigmav_UL)

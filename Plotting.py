@@ -8,6 +8,7 @@ import numpy as np
 import cPickle as pickle
 from math import log, log10
 from scipy.integrate import quad
+from pprint import pprint
 
 
 def plotObjects():
@@ -193,4 +194,44 @@ def plotSpectra():
     ## plot3 = ax1.plot(mchis, mchis**2*Berglist, label=r'$WW$')
 
     plt.legend(loc='lower left')
+    plt.show()
+
+
+def plotCLmins():
+    """Plot some combined profile likelihoods"""
+    # Open pickle files:
+    mchis = pickle.load(open('saveE.p'))
+    sigmavTestRange = np.arange(-26, -18, (26.-18.)/len(mchis)) #cf. Exclusion.py!
+    CLmins = pickle.load(open('saveCLmins.p'))
+
+    print 'mchis: ', mchis
+    # Print CLmins array:
+    #pprint(CLmins)
+
+    # Prepare plot:
+    fig1 = plt.figure(1)
+    ax1 = fig1.add_subplot(111)
+#    ax1.set_yscale('log')
+#   ax1.set_xscale('log')
+    ax1.set_ylabel(r'$\mathcal{CL}$')
+    ax1.set_xlabel(r'$\log$<$\sigma$v>')
+    ax1.set_ylim(200.,400.)
+    ax1.set_xlim(-23.,-19)
+    ax1.yaxis.grid(color='gray', linestyle='dashed')
+    ax1.xaxis.grid(color='gray', linestyle='dashed')
+
+    # Plot data from CLmins array:
+    for i in range(len(CLmins[:][0])):
+    #for i in (0,1):
+        ## print i
+        ## print 'sigmavTestRange: Length = ',  len(sigmavTestRange)
+        ## print sigmavTestRange
+        ## print 'CLmins[i][:] - Length = ', len(CLmins[i][:])
+        ## print CLmins[i][:]
+        #CLvector = CLmins[i][:]
+        ax1.plot(sigmavTestRange, CLmins[i][:])#, label=r'$\tau\tau$')
+
+
+#    ax1.plot(sigmavTestRange, CLmins[-1][:])
+
     plt.show()
