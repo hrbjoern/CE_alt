@@ -9,7 +9,8 @@ import cPickle as pickle
 from math import log, log10
 from scipy.integrate import quad
 from pprint import pprint
-
+from scipy import interpolate
+import sys
 
 def plotObjects():
     """Plot all the objects coming from ..?"""
@@ -198,11 +199,16 @@ def plotSpectra():
 
 
 def plotCLmins():
-    """Plot some combined profile likelihoods"""
+    """Plot some combined profile likelihoods
+    ... and/or test interpolation etc."""
     # Open pickle files:
     mchis = pickle.load(open('saveE.p'))
     sigmavTestRange = np.arange(-26, -18, (26.-18.)/len(mchis)) #cf. Exclusion.py!
+    # Array of minimized CLs:  CLmins[mchi][sv]
     CLmins = pickle.load(open('saveCLmins.p'))
+
+    # Finer sv range:
+    svtr2 = np.arange(-25, -19, (26.-18.)/(10.*len(mchis)))
 
     print 'mchis: ', mchis
     # Print CLmins array:
@@ -215,23 +221,80 @@ def plotCLmins():
 #   ax1.set_xscale('log')
     ax1.set_ylabel(r'$\mathcal{CL}$')
     ax1.set_xlabel(r'$\log$<$\sigma$v>')
-    ax1.set_ylim(200.,400.)
-    ax1.set_xlim(-23.,-19)
+    ax1.set_ylim(200.,500.)
+    ax1.set_xlim(-25.,-18)
     ax1.yaxis.grid(color='gray', linestyle='dashed')
     ax1.xaxis.grid(color='gray', linestyle='dashed')
 
+
+    # Calculate some values:
+    #ArrayMean = np.mean(CLmins)
+    #ArrayStd = np.std(CLmins) # Complete array: Std very large!!!
+    ArrayMean = np.mean(CLmins[:][0])
+    ArrayStd = np.std(CLmins[:][0]) # first column: Std very small!!
+    print 'ArrayMean, ArrayStd: ', ArrayMean, ArrayStd
+    ArrayMin = np.min(CLmins)
+    print 'ArrayMin =', ArrayMin
+
+    #sys.exit()
+
     # Plot data from CLmins array:
-    for i in range(len(CLmins[:][0])):
-    #for i in (0,1):
-        ## print i
-        ## print 'sigmavTestRange: Length = ',  len(sigmavTestRange)
-        ## print sigmavTestRange
-        ## print 'CLmins[i][:] - Length = ', len(CLmins[i][:])
-        ## print CLmins[i][:]
-        #CLvector = CLmins[i][:]
-        ax1.plot(sigmavTestRange, CLmins[i][:])#, label=r'$\tau\tau$')
+    for i in range(len(CLmins[:][0])): # length = number of rows
+        #ax1.plot(sigmavTestRange, CLmins[i][:])#, label=r'$\tau\tau$')
+
+        # Refer(!) to a specific row:
+        CLmZeile = CLmins[i][:] 
+
+        # Create a clipped 1D array:
+        # CLmSmooth = np.clip(CLmZeile, 0., ArrayMean+1.*ArrayStd) # not a good idea
+        #CLmSmooth = np.clip(CLmZeile, 0., 300.)
+        CLmSmooth = np.clip(CLmZeile, 0., ArrayMin+3.)
+
+        #print CLmSmooth
 
 
-#    ax1.plot(sigmavTestRange, CLmins[-1][:])
+        # Interpolation/Smoothing for each row's elements:
+        for j in range(len(CLmSmooth)):
+                    ## Mean = np.mean(CLmZeile[j-2:j+2])
+            ## Std = np.std(CLmZeile[j-2:j+2])
+            ## Mean = np.mean(CLmZeile[j-5:j+5])
+            ## Std = np.std(CLmZeile[j-5:j+5])
+            Mean = np.mean(CLmSmooth[j-5:j+5]) # Hic sunt leones!!!
+            Std = np.std(CLmSmooth[j-5:j+5])   # Indexing difficult ....
+            print 'i, j =', i, j
+            print 'Mean, Std =', Mean, Std
+            if np.isnan(Mean):
+                print 'CLmSmooth[j-5:j+5] =', CLmSmooth[j-5:j+5]
+            ## print 'CLmSmooth[j] =', CLmSmooth[j]
 
+            # Actual "smoothing":
+            if abs(CLmSmooth[j]-Mean) > 3.*Std: # Or any other value?
+                CLmSmooth[j] = Mean
+                print 'i, j =', i, j
+                print 'Mean, Std =', Mean, Std
+                print 'CLmZeile[j] =', CLmZeile[j]
+                print 'CLmSmooth, corr =', CLmSmooth[j]
+
+
+        # Interpolate and test smoothing results: 
+        #f = interpolate.interp1d(sigmavTestRange, CLmins[i][:], kind=3)
+        #f = interpolate.UnivariateSpline(sigmavTestRange, CLmins[i][:], s=1e13, k=4)
+        f = interpolate.interp1d(sigmavTestRange, CLmSmooth, kind=3) 
+        y = f(svtr2)
+
+        # Unsmoothed CLmins:
+        #ax1.plot(sigmavTestRange, CLmins[i][:])
+
+        # Smoothed values:
+        #ax1.plot(sigmavTestRange, CLmSmooth)
+
+        # Interpolated values:
+        ax1.plot(svtr2, y)#, label=r'$\tau\tau$')
+
+        
     plt.show()
+
+##########################################
+# THE END
+##########################################
+

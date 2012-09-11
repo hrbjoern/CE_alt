@@ -86,9 +86,15 @@ class Object(object):
         vectorresult = np.vectorize(self.SensiIntegral_scalar)
         return vectorresult(mchi)
 
-    def logJbarPDF(self, Jbartestvalue):
-        return log((1./(sqrt(2*pi)*log(10)*Jbartestvalue*self.JbarError) *
-                exp(-0.5*(log10(Jbartestvalue) - log10(self.Jbar))**2/self.JbarError**2) ))
+    def logJbarPDF(self, logJbartestvalue):
+        """ The (quasi-lognormal) distribution of log10(Jbar).
+        Parameters:
+        self.Jbar -> central/expectation value
+        self.JbarError -> Error (in dex?!)
+        logJbartestvalue -> log(variable of PDF)
+        """
+        return log((1./(sqrt(2*pi)*log(10)*(10.**logJbartestvalue)*self.JbarError) *
+                exp(-0.5*(logJbartestvalue - log10(self.Jbar))**2/self.JbarError**2) ))
         #return 1.
 
     # MOST important:

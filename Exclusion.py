@@ -231,7 +231,7 @@ def ComblogLhood(ParArray, mchi):
     """
     # Using logarithmic parameters:
     return -sum(o.logLhood(10.**ParArray[0], mchi, 10.**ParArray[CombinationList.index(o)+1])
-                +o.logJbarPDF(10.**ParArray[CombinationList.index(o)+1]) for o in CombinationList)
+                +o.logJbarPDF(ParArray[CombinationList.index(o)+1]) for o in CombinationList)
 
 def ComblogLhood_sv(JbarArray, log10sigmav, mchi):
     """ Combined (minus) log likelihood. The master function, as a function of sigmav.
@@ -240,7 +240,7 @@ def ComblogLhood_sv(JbarArray, log10sigmav, mchi):
     """
     # Using logarithmic parameters:
     return -sum(o.logLhood(10.**log10sigmav, mchi, 10.**JbarArray[CombinationList.index(o)])
-                +o.logJbarPDF(10.**JbarArray[CombinationList.index(o)]) for o in CombinationList)
+                +o.logJbarPDF(JbarArray[CombinationList.index(o)]) for o in CombinationList)
 
 TestArray = np.append(-21., JbarList)
 print 'TestArray = ', TestArray
