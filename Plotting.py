@@ -221,7 +221,7 @@ def plotCLmins():
 #   ax1.set_xscale('log')
     ax1.set_ylabel(r'$\mathcal{CL}$')
     ax1.set_xlabel(r'$\log$<$\sigma$v>')
-    ax1.set_ylim(200.,500.)
+    ax1.set_ylim(260.,300.)
     ax1.set_xlim(-25.,-18)
     ax1.yaxis.grid(color='gray', linestyle='dashed')
     ax1.xaxis.grid(color='gray', linestyle='dashed')
@@ -283,13 +283,13 @@ def plotCLmins():
         y = f(svtr2)
 
         # Unsmoothed CLmins:
-        #ax1.plot(sigmavTestRange, CLmins[i][:])
+        ax1.plot(sigmavTestRange, CLmins[i][:])
 
         # Smoothed values:
         #ax1.plot(sigmavTestRange, CLmSmooth)
 
         # Interpolated values:
-        ax1.plot(svtr2, y)#, label=r'$\tau\tau$')
+        #ax1.plot(svtr2, y)#, label=r'$\tau\tau$')
 
         
     plt.show()

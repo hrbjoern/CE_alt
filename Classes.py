@@ -42,7 +42,8 @@ class Object(object):
 
         self.Tobs = Tobs*3600.
         # Introducing Jbar PDF: 
-        self.JbarError = 0.5 # half a dec error for the moment
+        self.JbarError = 0.01 # Testing ...
+        #self.JbarError = 0.5 # half a dec error for the moment
         self.Jbar = Jbar
         self.Non = Non
         self.Noff = Noff

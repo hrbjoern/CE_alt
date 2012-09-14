@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 # Hello world 
-print 'Hekki hekki hekki patang.\n'
+print 'Hekki hekki hekki patang.'
+print
 #print "IMPORTANT: Please enter all numbers as floats!\n"
 
 
@@ -32,7 +33,8 @@ import PhotonSpectra
 import Plotting
 import Limits
 
-print "Importing complete\n"
+print "Importing complete:", time.ctime()
+print
 
 ############################################################
 # Objects:
@@ -252,42 +254,10 @@ print 'clout1 = ', clout1
 print
 #sys.exit()
 
-# Minimization test:
-print '\nMinimization test:'
-print '(not any longer)\n'
-## print 'Starting values:'
-## print TestArray
 
-## # Bounds: List of tuples!
-## bds = [(-26., -20.)] # sigmav bounds
-## for num in JbarList:
-##     bds.append((16., 22.))
-## print 'Bounds = ', bds
-
-## minresult = minimize(ComblogLhood, TestArray, args=(mchis[-2],), bounds=bds, 
-##                      #options={'maxiter':int(1e2), 'disp': True},
-##                      method='TNC')
-## print '\nminresult.x = ', minresult.x
-## print 'minresult.message = ', minresult.message
-## print 'minresult.fun = ', minresult.fun
-
-## print '\nMinimization test 2:'
-## print 'Starting values:'
-## TestArray2 = np.append(-22., JbarList)
-## print TestArray2
-
-## minresult2 = minimize(ComblogLhood, TestArray2, args=(mchis[-2],), bounds=bds, 
-##                      #options={'maxiter':int(1e2), 'disp': True},
-##                      method='TNC')
-## print '\nminresult2.x = ', minresult2.x
-## print 'minresult2.fun = ', minresult2.fun
-## ## minresult2 = fmin_tnc(ComblogLhood, TestArray2, args=(mchis[-3],), approx_grad=1,
-## ##                       epsilon=1., bounds=bds, disp=5, accuracy=0.01, ftol = 0.1)
-## ## print 'minresult2 = ', minresult2
-
-## print '\nMinimization test 3:'
-## print
-## print 'For sigmav in (-26, -19), mchi=mchis[-2] ...:\n'
+########################################################
+# Start minimization:
+########################################################
 
 sigmavTestRange = np.arange(-26, -18, (26.-18.)/esteps)
 JBA = np.array(JbarList) # 19's
@@ -295,22 +265,12 @@ JBbds = []
 for num in JbarList:
     JBbds.append((16., 22.))
 
-## for sv in sigmavTestRange:
-##     print 'sigmav = ', sv
-##     minresult3 = minimize(ComblogLhood_sv, JBA, args=(sv, mchis[-2],), bounds=JBbds, 
-##                   method='TNC')
-##     print 'minresult3.x = ', minresult3.x
-##     print 'minresult3.fun = ', minresult3.fun
-##     print
 
 
-## print '\nMinimization test 4:' ## Resultat: in 2012-08-28_Exclusion_Minimize-out.txt
-## print
-## print 'For sigmav in (-26, -19), mchi in ...:\n'
-
-
-
-print '\n Testing (and plotting) the profile likelihood:'
+print '\n Testing (and plotting) the profile likelihood:', time.ctime()
+#print '(not right now)\n'
+# Tolerance for minimization attempts:
+mintol = 0.2
 
 # 2-dim. CL array:
 CLmins = np.empty((len(mchis), len(sigmavTestRange)))
@@ -323,11 +283,19 @@ for mchi in mchis:
         svindex = (sigmavTestRange.tolist()).index(sv)
         minresult4 = minimize(ComblogLhood_sv, JBA, args=(sv, mchi,), bounds=JBbds, 
                               method='TNC').fun
-        #print 'minresult4 =', minresult4
-        CLmins[mindex][svindex] = minresult4
+        minresult5 = minimize(ComblogLhood_sv, 0.9*JBA, args=(sv, mchi,), bounds=JBbds, 
+                              method='TNC').fun
+        if abs(minresult4-minresult5) > mintol:
+            minresult6 = minimize(ComblogLhood_sv, 1.1*JBA, args=(sv, mchi,), bounds=JBbds, 
+                                  method='TNC').fun
+            minimum = min((minresult4, minresult5, minresult6))
+        else:
+            minimum = min((minresult4, minresult5))
+                          
+        CLmins[mindex][svindex] = minimum
 
 
-print 'CLmins array:'
+print '\nCLmins array:'
 print '(not printed anymore)\n'
 #pprint(CLmins)
 
@@ -351,6 +319,17 @@ print 'CLmin = ', CLmin
 def findRoot(sigmav, mchi):
     CLaktuell = minimize(ComblogLhood_sv, JBA, args=(sigmav, mchi,), bounds=JBbds, 
                          method='TNC').fun
+    # Test the minimization result:
+    CLaktuell2 = minimize(ComblogLhood_sv, JBA*0.9, args=(sigmav, mchi,), bounds=JBbds, 
+                         method='TNC').fun
+    if abs(CLaktuell-CLaktuell2) > mintol:
+        CLaktuell3 = minimize(ComblogLhood_sv, JBA*1.1, args=(sigmav, mchi,), bounds=JBbds, 
+                              method='TNC').fun
+        # Take the real minimum:
+        CLaktuell = min((CLaktuell, CLaktuell2, CLaktuell3))
+    else:
+        # Take the real minimum:
+        CLaktuell = min((CLaktuell, CLaktuell2))
     CLdiff = CLaktuell-CLmin-(2.706/2.)
     ## if abs(CLdiff) < 0.1:
     ##     print 'CLaktuell = ', CLaktuell
@@ -359,11 +338,12 @@ def findRoot(sigmav, mchi):
 # Array of sigmav limit values:
 UL_CombLhood = np.zeros_like(mchis)
 
-print '\nStarting to find the upper limits:'
+print '\nStarting to find the upper limits:', time.ctime()
 
 for mchi in mchis:
-    #print 'mchi = ', mchi
-    sigmav_UL = brentq(findRoot, -26, -18, # bracketing values
+    #if np.log10(mchi)%1.==0:
+        #print 'mchi = ', mchi
+    sigmav_UL = brentq(findRoot, -26, -17, # bracketing values
                        args=(mchi,),
                        #full_output=True,
                        #maxfev = 1000, 
@@ -374,7 +354,7 @@ for mchi in mchis:
     # Fill array of sigmav limits:
     UL_CombLhood[(mchis.tolist()).index(mchi)] = 10.**(sigmav_UL)
 
-print '\nResult: Limits from full likelihood'
+print '\nResult: Limits from full likelihood', time.ctime()
 print 'UL_CombLhood = ', UL_CombLhood
 
 
@@ -382,27 +362,7 @@ print 'UL_CombLhood = ', UL_CombLhood
 CombList = (UL_bbbarComb, UL_CombLhood)
 
 
-    
-## # Vectorize the comb. lhood function? Yes!
-## CL_vec = np.vectorize(ComblogLhood)
 
-## # np.array for sigmav values: (over which to interpolate)
-## sigmav_steps = esteps # make same-dim array
-## sigmavs = np.logspace(-26, -20, sigmav_steps)
-## #print 'sigmavs = ', sigmavs
-
-## # 2D-valued array of sigmavs and mchis: Works! :)
-## mv, sv = np.meshgrid(mchis, sigmavs) # Note: indexing rules!
-
-
-## ## print 'meshgrid(s): mv, sv'
-## ## print mv
-## ## print sv
-## ## print
-
-
-
-#sys.exit()
 
 
 ########################################################
@@ -547,3 +507,82 @@ sys.exit()
 
 ## # List of combined limits: entries are arrays 
 ## CombList = (UL_bbbarComb, UL_CombLhood)
+
+
+############################################################
+# Nicht ganz so altes Minimierungsgedoens:
+############################################################
+
+# Minimization test:
+#print '\nMinimization test:'
+#print '(not any longer)\n'
+## print 'Starting values:'
+## print TestArray
+
+## # Bounds: List of tuples!
+## bds = [(-26., -20.)] # sigmav bounds
+## for num in JbarList:
+##     bds.append((16., 22.))
+## print 'Bounds = ', bds
+
+## minresult = minimize(ComblogLhood, TestArray, args=(mchis[-2],), bounds=bds, 
+##                      #options={'maxiter':int(1e2), 'disp': True},
+##                      method='TNC')
+## print '\nminresult.x = ', minresult.x
+## print 'minresult.message = ', minresult.message
+## print 'minresult.fun = ', minresult.fun
+
+## print '\nMinimization test 2:'
+## print 'Starting values:'
+## TestArray2 = np.append(-22., JbarList)
+## print TestArray2
+
+## minresult2 = minimize(ComblogLhood, TestArray2, args=(mchis[-2],), bounds=bds, 
+##                      #options={'maxiter':int(1e2), 'disp': True},
+##                      method='TNC')
+## print '\nminresult2.x = ', minresult2.x
+## print 'minresult2.fun = ', minresult2.fun
+## ## minresult2 = fmin_tnc(ComblogLhood, TestArray2, args=(mchis[-3],), approx_grad=1,
+## ##                       epsilon=1., bounds=bds, disp=5, accuracy=0.01, ftol = 0.1)
+## ## print 'minresult2 = ', minresult2
+
+## print '\nMinimization test 3:'
+## print
+## print 'For sigmav in (-26, -19), mchi=mchis[-2] ...:\n'
+
+## for sv in sigmavTestRange:
+##     print 'sigmav = ', sv
+##     minresult3 = minimize(ComblogLhood_sv, JBA, args=(sv, mchis[-2],), bounds=JBbds, 
+##                   method='TNC')
+##     print 'minresult3.x = ', minresult3.x
+##     print 'minresult3.fun = ', minresult3.fun
+##     print
+
+
+## print '\nMinimization test 4:' ## Resultat: in 2012-08-28_Exclusion_Minimize-out.txt
+## print
+## print 'For sigmav in (-26, -19), mchi in ...:\n'
+
+
+############################################################
+    
+## # Vectorize the comb. lhood function? Yes!
+## CL_vec = np.vectorize(ComblogLhood)
+
+## # np.array for sigmav values: (over which to interpolate)
+## sigmav_steps = esteps # make same-dim array
+## sigmavs = np.logspace(-26, -20, sigmav_steps)
+## #print 'sigmavs = ', sigmavs
+
+## # 2D-valued array of sigmavs and mchis: Works! :)
+## mv, sv = np.meshgrid(mchis, sigmavs) # Note: indexing rules!
+
+
+## ## print 'meshgrid(s): mv, sv'
+## ## print mv
+## ## print sv
+## ## print
+
+
+
+#sys.exit()
