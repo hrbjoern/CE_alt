@@ -46,7 +46,9 @@ print
 # Including Eth = 100 GeV:
 Segue1M = Object("Segue1M", "Aeffs/MAGIC_Gaug_Aeff.dat",
                  Tobs=29.42,
-                 Jbar=1.14e19,
+                 #Jbar=1.14e19,
+                 logJbar=19.1,
+                 JbarErr=0.6,
                  Non=52978,
                  Noff=53301,
                  alpha=1.0,
@@ -55,7 +57,9 @@ Segue1M = Object("Segue1M", "Aeffs/MAGIC_Gaug_Aeff.dat",
 
 Segue1V = Object("Segue1V","Aeffs/VERITAS_Segue1_Aeff_TrueE.dat", #"Aeffs/VERITAS-Aeff_20deg.dat",
                  Tobs=47.8,
-                 Jbar=7.7e18,
+                 #Jbar=7.7e18,
+                 logJbar=19.1,
+                 JbarErr=0.6,
                  Non=1082,
                  Noff=12479,
                  alpha=0.084,
@@ -64,51 +68,117 @@ Segue1V = Object("Segue1V","Aeffs/VERITAS_Segue1_Aeff_TrueE.dat", #"Aeffs/VERITA
 
 Segue1V_tautau = Object("Segue1V-tautau","Aeffs/VERITAS_Segue1_Aeff_TrueE.dat", #"Aeffs/VERITAS-Aeff_20deg.dat",
                         Tobs=47.8,
-                        Jbar=7.7e18,
+                        #Jbar=7.7e18,
+                        logJbar=19.1,
+                        JbarErr=0.6,
                         Non=1082,
                         Noff=12479,
                         alpha=0.084,
                         spectrum="tautau")
 #Segue1V.printObject()
 
-SculptorIso = Object("SculptorIso","Aeffs/HESS_Aeffs_Crab_20deg.dat",
+Sculptor = Object("Sculptor","Aeffs/HESS_Aeffs_Crab_20deg.dat",
                      Tobs=11.8,
-                     Jbar=2.9e17,
+                     #Jbar=2.9e17,
+                     logJbar=17.9,
+                     JbarErr=0.2,
                      Non=117,
                      Noff=2283,
                      alpha=0.04,
                      spectrum="bbbar")
 #SculptorIso.printObject()
 
-SculptorNFW = Object("SculptorNFW","Aeffs/HESS_Aeffs_Crab_20deg.dat",
-                     Tobs=11.8,
-                     Jbar=2.9e17,
-                     Non=117,
-                     Noff=2283,
-                     alpha=0.04,
-                     spectrum="bbbar")                    
+## SculptorNFW = Object("SculptorNFW","Aeffs/HESS_Aeffs_Crab_20deg.dat",
+##                      Tobs=11.8,
+##                      Jbar=2.9e17,
+##                      Non=117,
+##                      Noff=2283,
+##                      alpha=0.04,
+##                      spectrum="bbbar")      
+
 #SculptorNFW.printObject()
 
+# Alte Werte:
+## Sgr = Object("Sgr","Aeffs/HESS_Aeffs_Crab_20deg.dat",
+##              Tobs=11.,
+##              #Jbar=1e18,
+##              logJbar=17.3,
+##              JbarErr=0.3,
+##              Non=437,
+##              Noff=4270,
+##              alpha=(1./10.1),
+##              spectrum="bbbar")
+
+# Neue Werte: (Farnier, Sep. 2011)
 Sgr = Object("Sgr","Aeffs/HESS_Aeffs_Crab_20deg.dat",
-             Tobs=11.,
-             Jbar=1e18,
-             Non=437,
-             Noff=4270,
-             alpha=(1./10.1),
+             Tobs=58.3,
+             #Jbar=1e18,
+             logJbar=17.3,
+             JbarErr=0.3,
+             Non=846,
+             Noff=14536,
+             alpha=(1./18.37),
              spectrum="bbbar")
 #Sgr.printObject()
 
+# Willman1: erstmal drinlassen ... mit grossem Fehler.
 Willman1V = Object("Willman1V", "Aeffs/VERITAS-Aeff_20deg.dat",
                    Tobs=13.68,
-                   Jbar=84.3e17,
+                   #Jbar=84.3e17,
+                   logJbar=18.9,
+                   JbarErr=1.0,
                    Non=326,
                    Noff=3602,
                    alpha=(1./11.),
                    spectrum="bbbar")
 #Willman1V.printObject()
 
+DracoM = Object("DracoM", "Aeffs/MAGIC_Gaug_Aeff.dat",
+                   Tobs=7.8, 
+                   logJbar=17.8,
+                   JbarErr=0.2,
+                   Non=10883,
+                   Noff=10996,
+                   alpha=(1.),
+                   spectrum="bbbar")
 
-ObjList = (Segue1M, Segue1V, Segue1V_tautau, SculptorIso, Willman1V, Sgr)
+DracoV = Object("DracoV", "Aeffs/VERITAS-Aeff_20deg.dat",
+                Tobs=(66185./3600), 
+                logJbar=17.8,
+                JbarErr=0.2,
+                Non=305,
+                Noff=3667,
+                alpha=(1./11.),
+                spectrum="bbbar")
+
+UrsaMinor = Object("UrsaMinor", "Aeffs/VERITAS-Aeff_20deg.dat",
+                   Tobs=(68080./3600.),
+                   logJbar=18.3,
+                   JbarErr=0.2,
+                   Non=250,
+                   Noff=3084,
+                   alpha=(1./11.),
+                   spectrum="bbbar")
+
+Fornax = Object("Fornax", "Aeffs/HESS_Aeffs_Crab_20deg.dat", 
+                Tobs=14.5,
+                logJbar=18.3,
+                JbarErr=0.2,
+                Non=160,
+                Noff=122,
+                alpha=1.,
+                spectrum="bbbar")
+
+
+
+ObjList = (Segue1M, Segue1V,
+           DracoM, DracoV,
+           #Segue1V_tautau,
+           Sculptor,
+           Willman1V,
+           UrsaMinor,
+           Sgr,
+           Fornax)
 #ObjList = (Segue1M,Segue1V)
 #ObjList = (Segue1M,Segue1M)
 
@@ -148,7 +218,13 @@ SumOfNon = 0.
 SumOfNoff = 0.
 SumOfAlphaNoff = 0.
 
-CombinationList = (Segue1M, Segue1V, SculptorIso, Willman1V, Sgr)
+CombinationList = (Segue1M, Segue1V,
+                   DracoM, DracoV,
+                   Sculptor,
+                   Willman1V,
+                   UrsaMinor,
+                   Sgr,
+                   Fornax)
 ## print '\nCombinationList =', CombinationList
 ## for o in CombinationList:
 ##     print CombinationList.index(o)
@@ -266,46 +342,51 @@ for num in JbarList:
     JBbds.append((16., 22.))
 
 
+# Plot the profile likelihoods?
+PlotPL = True
+PlotPL = False
 
-print '\n Testing (and plotting) the profile likelihood:', time.ctime()
-#print '(not right now)\n'
-# Tolerance for minimization attempts:
-mintol = 0.2
+if PlotPL:
 
-# 2-dim. CL array:
-CLmins = np.empty((len(mchis), len(sigmavTestRange)))
+    print '\n Testing (and plotting) the profile likelihood:', time.ctime()
+    #print '(not right now)\n'
+    # Tolerance for minimization attempts:
+    mintol = 0.2
 
-for mchi in mchis:
-    #print 'mchi = ', mchi
-    mindex = (mchis.tolist()).index(mchi)
-    for sv in sigmavTestRange:
-        #print 'sigmav = ', sv
-        svindex = (sigmavTestRange.tolist()).index(sv)
-        minresult4 = minimize(ComblogLhood_sv, JBA, args=(sv, mchi,), bounds=JBbds, 
-                              method='TNC').fun
-        minresult5 = minimize(ComblogLhood_sv, 0.9*JBA, args=(sv, mchi,), bounds=JBbds, 
-                              method='TNC').fun
-        if abs(minresult4-minresult5) > mintol:
-            minresult6 = minimize(ComblogLhood_sv, 1.1*JBA, args=(sv, mchi,), bounds=JBbds, 
+    # 2-dim. CL array:
+    CLmins = np.empty((len(mchis), len(sigmavTestRange)))
+
+    for mchi in mchis:
+        #print 'mchi = ', mchi
+        mindex = (mchis.tolist()).index(mchi)
+        for sv in sigmavTestRange:
+            #print 'sigmav = ', sv
+            svindex = (sigmavTestRange.tolist()).index(sv)
+            minresult4 = minimize(ComblogLhood_sv, JBA, args=(sv, mchi,), bounds=JBbds, 
                                   method='TNC').fun
-            minimum = min((minresult4, minresult5, minresult6))
-        else:
-            minimum = min((minresult4, minresult5))
-                          
-        CLmins[mindex][svindex] = minimum
+            minresult5 = minimize(ComblogLhood_sv, 0.9*JBA, args=(sv, mchi,), bounds=JBbds, 
+                                  method='TNC').fun
+            if abs(minresult4-minresult5) > mintol:
+                minresult6 = minimize(ComblogLhood_sv, 1.1*JBA, args=(sv, mchi,), bounds=JBbds, 
+                                      method='TNC').fun
+                minimum = min((minresult4, minresult5, minresult6))
+            else:
+                minimum = min((minresult4, minresult5))
+
+            CLmins[mindex][svindex] = minimum
 
 
-print '\nCLmins array:'
-print '(not printed anymore)\n'
-#pprint(CLmins)
+    print '\nCLmins array:'
+    print '(not printed anymore)\n'
+    #pprint(CLmins)
 
-pickle.dump(CLmins, open('saveCLmins.p','wb'))
+    pickle.dump(CLmins, open('saveCLmins.p','wb'))
 
 
-#sys.exit()
+    #sys.exit()
 
-print
-print
+    print
+    print
 
 
 # Find sigmav values where  Delta(-2 ln PL) = 2.706 :
@@ -343,7 +424,7 @@ print '\nStarting to find the upper limits:', time.ctime()
 for mchi in mchis:
     #if np.log10(mchi)%1.==0:
         #print 'mchi = ', mchi
-    sigmav_UL = brentq(findRoot, -26, -17, # bracketing values
+    sigmav_UL = brentq(findRoot, -27., -16., # bracketing values
                        args=(mchi,),
                        #full_output=True,
                        #maxfev = 1000, 

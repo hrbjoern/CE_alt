@@ -49,13 +49,20 @@ def plotObjects():
 
     #Plot Pubs?
     Pubs = True
-    #Pubs = False
+    Pubs = False
+
+    # Plot combination?
+    Comb=True
 
     if Pubs:
         plotPubs()
     else:
-        plt.legend(loc=4,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
-        plt.show()
+        if Comb:
+            plotComb()
+        else:
+            plt.show()
+            plt.legend(loc=4,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
+            plt.show()
     
     return 0
 

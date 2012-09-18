@@ -15,7 +15,7 @@ class Object(object):
     astrophysical object, and the formulae to calculate upper limits
     from their results."""
     
-    def __init__(self, Name, Aeff, Tobs, Jbar, Non, Noff, alpha, spectrum):
+    def __init__(self, Name, Aeff, Tobs, logJbar, JbarErr, Non, Noff, alpha, spectrum):
         """ Initializes \"object\", including some specific object modifications."""
         #        print "\nHallo", Name
         self.Name = Name
@@ -41,10 +41,12 @@ class Object(object):
                 #self.Aeffdata[:,1]*=0.8 # Fudge efficiency factor
 
         self.Tobs = Tobs*3600.
-        # Introducing Jbar PDF: 
-        self.JbarError = 0.01 # Testing ...
+        self.Jbar = 10.**logJbar
+        self.logJbar = logJbar
+        # Introducing Jbar PDF:
+        self.JbarError = JbarErr 
+        #self.JbarError = 0.01 # Testing ...
         #self.JbarError = 0.5 # half a dec error for the moment
-        self.Jbar = Jbar
         self.Non = Non
         self.Noff = Noff
         self.alpha = alpha
@@ -95,7 +97,7 @@ class Object(object):
         logJbartestvalue -> log(variable of PDF)
         """
         return log((1./(sqrt(2*pi)*log(10)*(10.**logJbartestvalue)*self.JbarError) *
-                exp(-0.5*(logJbartestvalue - log10(self.Jbar))**2/self.JbarError**2) ))
+                exp(-0.5*(logJbartestvalue - self.logJbar)**2/self.JbarError**2) ))
         #return 1.
 
     # MOST important:
@@ -136,8 +138,11 @@ class Object(object):
         
     
     def ULsigmav(self,mchi):
-        """ Calculates UL on sigmav with the object's member spectrum."""
-        prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
+        """ Calculates UL on sigmav with the object's member spectrum.
+        Assumption: Jbar = Jbar-sigma(Jbar)"""
+        jbar = 10.**(self.logJbar-self.JbarError)
+        #prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
+        prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*jbar)
         result = prefactor / quad(lambda E: (self.Spectrum(E,mchi)*self.Aeff(E)),
                                   self.Eth, 1.01*mchi,limit=50,full_output=1)[0]
         return result 
