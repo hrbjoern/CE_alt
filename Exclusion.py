@@ -36,6 +36,13 @@ import Limits
 print "Importing complete:", time.ctime()
 print
 
+
+# Plot the profile likelihoods?
+PlotPL = True
+if len(sys.argv) > 2:
+    PlotPL = False
+    
+
 ############################################################
 # Objects:
 #    def __init__(self, Name, Aeff, Tobs(h), Jbar, Non, Noff, alpha):
@@ -225,6 +232,16 @@ CombinationList = (Segue1M, Segue1V,
                    UrsaMinor,
                    Sgr,
                    Fornax)
+## # CHB - Testing:
+## CombinationList = (Segue1M, Segue1V,
+##                    DracoM, DracoV) # ,
+##                    ## Sculptor,
+##                    ## Willman1V,
+##                    ## UrsaMinor,
+##                    ## Sgr,
+##                    ## Fornax)
+
+
 ## print '\nCombinationList =', CombinationList
 ## for o in CombinationList:
 ##     print CombinationList.index(o)
@@ -297,7 +314,7 @@ with Timer():
 JbarList = range(len(CombinationList))
 for i in JbarList:
     #JbarList[i] = 1e21
-    JbarList[i] = 19. # (using log values instead!)
+    JbarList[i] = 18. # (using log values instead!)
     
 
 # IMPORTANT:
@@ -341,17 +358,15 @@ JBbds = []
 for num in JbarList:
     JBbds.append((16., 22.))
 
+# Tolerance for minimization attempts:
+mintol = 0.2
 
-# Plot the profile likelihoods?
-PlotPL = True
-PlotPL = False
-
-if PlotPL:
-
+if not PlotPL:
+    print '\nNot calculating the CLmins array / profile l\'hood.\n'
+#if PlotPL:
+else:
     print '\n Testing (and plotting) the profile likelihood:', time.ctime()
     #print '(not right now)\n'
-    # Tolerance for minimization attempts:
-    mintol = 0.2
 
     # 2-dim. CL array:
     CLmins = np.empty((len(mchis), len(sigmavTestRange)))
@@ -382,9 +397,6 @@ if PlotPL:
 
     pickle.dump(CLmins, open('saveCLmins.p','wb'))
 
-
-    #sys.exit()
-
     print
     print
 
@@ -400,17 +412,21 @@ print 'CLmin = ', CLmin
 def findRoot(sigmav, mchi):
     CLaktuell = minimize(ComblogLhood_sv, JBA, args=(sigmav, mchi,), bounds=JBbds, 
                          method='TNC').fun
-    # Test the minimization result:
-    CLaktuell2 = minimize(ComblogLhood_sv, JBA*0.9, args=(sigmav, mchi,), bounds=JBbds, 
-                         method='TNC').fun
-    if abs(CLaktuell-CLaktuell2) > mintol:
-        CLaktuell3 = minimize(ComblogLhood_sv, JBA*1.1, args=(sigmav, mchi,), bounds=JBbds, 
+    if abs(CLaktuell-CLmin)>1.:
+        # Test the minimization result:
+        CLaktuell2 = minimize(ComblogLhood_sv, JBA*0.95, args=(sigmav, mchi,), bounds=JBbds, 
                               method='TNC').fun
-        # Take the real minimum:
-        CLaktuell = min((CLaktuell, CLaktuell2, CLaktuell3))
-    else:
-        # Take the real minimum:
-        CLaktuell = min((CLaktuell, CLaktuell2))
+        if abs(CLaktuell-CLaktuell2) > mintol:
+            print 'Hoppla! findRoot-Problem bei mchi =', mchi
+            
+            CLaktuell3 = minimize(ComblogLhood_sv, JBA*1.05, args=(sigmav, mchi,), bounds=JBbds, 
+                                  method='TNC').fun
+            print 'CLa1,2,3:', CLaktuell, CLaktuell2, CLaktuell3
+            # Take the real minimum:
+            CLaktuell = min((CLaktuell, CLaktuell2, CLaktuell3))
+        else:
+            # Take the real minimum:
+            CLaktuell = min((CLaktuell, CLaktuell2))
     CLdiff = CLaktuell-CLmin-(2.706/2.)
     ## if abs(CLdiff) < 0.1:
     ##     print 'CLaktuell = ', CLaktuell
@@ -424,14 +440,18 @@ print '\nStarting to find the upper limits:', time.ctime()
 for mchi in mchis:
     #if np.log10(mchi)%1.==0:
         #print 'mchi = ', mchi
-    sigmav_UL = brentq(findRoot, -27., -16., # bracketing values
-                       args=(mchi,),
-                       #full_output=True,
-                       #maxfev = 1000, 
-                       # factor=0.1
-                       )
+    try:
+        sigmav_UL = brentq(findRoot, -26., -17., # bracketing values
+                           args=(mchi,),
+                           #full_output=True,
+                           #maxfev = 1000, 
+                           # factor=0.1
+                           )
     #print 'sigmav_UL = ', sigmav_UL
-
+    except:
+        print 'Hoppla! brentq-Problem bei mchi =', mchi
+        sigmav_UL = 1.
+    
     # Fill array of sigmav limits:
     UL_CombLhood[(mchis.tolist()).index(mchi)] = 10.**(sigmav_UL)
 

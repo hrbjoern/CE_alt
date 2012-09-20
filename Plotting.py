@@ -218,6 +218,15 @@ def plotCLmins():
     svtr2 = np.arange(-25, -19, (26.-18.)/(10.*len(mchis)))
 
     print 'mchis: ', mchis
+    print 'len(mchis): ', len(mchis)
+    print 'len(CLmins[1][:]: ', len(CLmins[1][:])
+    if len(mchis) != len(CLmins[1][:]):
+        print '\nDimension error!\n'
+        sys.exit()
+    print
+    mm = min(CLmins[:][0])
+    print 'min(CLmins[:][0]) =', mm
+                         
     # Print CLmins array:
     #pprint(CLmins)
 
@@ -226,9 +235,9 @@ def plotCLmins():
     ax1 = fig1.add_subplot(111)
 #    ax1.set_yscale('log')
 #   ax1.set_xscale('log')
-    ax1.set_ylabel(r'$\mathcal{CL}$')
+    ax1.set_ylabel(r'$\mathcal{PL}$')
     ax1.set_xlabel(r'$\log$<$\sigma$v>')
-    ax1.set_ylim(260.,300.)
+    ax1.set_ylim(mm-10.,mm+50)
     ax1.set_xlim(-25.,-18)
     ax1.yaxis.grid(color='gray', linestyle='dashed')
     ax1.xaxis.grid(color='gray', linestyle='dashed')
@@ -247,47 +256,47 @@ def plotCLmins():
 
     # Plot data from CLmins array:
     for i in range(len(CLmins[:][0])): # length = number of rows
-        #ax1.plot(sigmavTestRange, CLmins[i][:])#, label=r'$\tau\tau$')
+        ## #ax1.plot(sigmavTestRange, CLmins[i][:])#, label=r'$\tau\tau$')
 
-        # Refer(!) to a specific row:
-        CLmZeile = CLmins[i][:] 
+        ## # Refer(!) to a specific row:
+        ## CLmZeile = CLmins[i][:] 
 
-        # Create a clipped 1D array:
-        # CLmSmooth = np.clip(CLmZeile, 0., ArrayMean+1.*ArrayStd) # not a good idea
-        #CLmSmooth = np.clip(CLmZeile, 0., 300.)
-        CLmSmooth = np.clip(CLmZeile, 0., ArrayMin+3.)
+        ## # Create a clipped 1D array:
+        ## # CLmSmooth = np.clip(CLmZeile, 0., ArrayMean+1.*ArrayStd) # not a good idea
+        ## #CLmSmooth = np.clip(CLmZeile, 0., 300.)
+        ## CLmSmooth = np.clip(CLmZeile, 0., ArrayMin+3.)
 
-        #print CLmSmooth
-
-
-        # Interpolation/Smoothing for each row's elements:
-        for j in range(len(CLmSmooth)):
-                    ## Mean = np.mean(CLmZeile[j-2:j+2])
-            ## Std = np.std(CLmZeile[j-2:j+2])
-            ## Mean = np.mean(CLmZeile[j-5:j+5])
-            ## Std = np.std(CLmZeile[j-5:j+5])
-            Mean = np.mean(CLmSmooth[j-5:j+5]) # Hic sunt leones!!!
-            Std = np.std(CLmSmooth[j-5:j+5])   # Indexing difficult ....
-            print 'i, j =', i, j
-            print 'Mean, Std =', Mean, Std
-            if np.isnan(Mean):
-                print 'CLmSmooth[j-5:j+5] =', CLmSmooth[j-5:j+5]
-            ## print 'CLmSmooth[j] =', CLmSmooth[j]
-
-            # Actual "smoothing":
-            if abs(CLmSmooth[j]-Mean) > 3.*Std: # Or any other value?
-                CLmSmooth[j] = Mean
-                print 'i, j =', i, j
-                print 'Mean, Std =', Mean, Std
-                print 'CLmZeile[j] =', CLmZeile[j]
-                print 'CLmSmooth, corr =', CLmSmooth[j]
+        ## #print CLmSmooth
 
 
-        # Interpolate and test smoothing results: 
-        #f = interpolate.interp1d(sigmavTestRange, CLmins[i][:], kind=3)
-        #f = interpolate.UnivariateSpline(sigmavTestRange, CLmins[i][:], s=1e13, k=4)
-        f = interpolate.interp1d(sigmavTestRange, CLmSmooth, kind=3) 
-        y = f(svtr2)
+        ## # Interpolation/Smoothing for each row's elements:
+        ## for j in range(len(CLmSmooth)):
+        ##             ## Mean = np.mean(CLmZeile[j-2:j+2])
+        ##     ## Std = np.std(CLmZeile[j-2:j+2])
+        ##     ## Mean = np.mean(CLmZeile[j-5:j+5])
+        ##     ## Std = np.std(CLmZeile[j-5:j+5])
+        ##     Mean = np.mean(CLmSmooth[j-5:j+5]) # Hic sunt leones!!!
+        ##     Std = np.std(CLmSmooth[j-5:j+5])   # Indexing difficult ....
+        ##     print 'i, j =', i, j
+        ##     print 'Mean, Std =', Mean, Std
+        ##     if np.isnan(Mean):
+        ##         print 'CLmSmooth[j-5:j+5] =', CLmSmooth[j-5:j+5]
+        ##     ## print 'CLmSmooth[j] =', CLmSmooth[j]
+
+        ##     # Actual "smoothing":
+        ##     if abs(CLmSmooth[j]-Mean) > 3.*Std: # Or any other value?
+        ##         CLmSmooth[j] = Mean
+        ##         print 'i, j =', i, j
+        ##         print 'Mean, Std =', Mean, Std
+        ##         print 'CLmZeile[j] =', CLmZeile[j]
+        ##         print 'CLmSmooth, corr =', CLmSmooth[j]
+
+
+        ## # Interpolate and test smoothing results: 
+        ## #f = interpolate.interp1d(sigmavTestRange, CLmins[i][:], kind=3)
+        ## #f = interpolate.UnivariateSpline(sigmavTestRange, CLmins[i][:], s=1e13, k=4)
+        ## f = interpolate.interp1d(sigmavTestRange, CLmSmooth, kind=3) 
+        ## y = f(svtr2)
 
         # Unsmoothed CLmins:
         ax1.plot(sigmavTestRange, CLmins[i][:])
