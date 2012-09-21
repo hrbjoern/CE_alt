@@ -37,12 +37,6 @@ print "Importing complete:", time.ctime()
 print
 
 
-# Plot the profile likelihoods?
-PlotPL = True
-if len(sys.argv) > 2:
-    PlotPL = False
-    
-
 ############################################################
 # Objects:
 #    def __init__(self, Name, Aeff, Tobs(h), Jbar, Non, Noff, alpha):
@@ -129,6 +123,7 @@ Sgr = Object("Sgr","Aeffs/HESS_Aeffs_Crab_20deg.dat",
 #Sgr.printObject()
 
 # Willman1: erstmal drinlassen ... mit grossem Fehler.
+# ... nee, doch aus ObjList u. CombinationList rausgenommen.
 Willman1V = Object("Willman1V", "Aeffs/VERITAS-Aeff_20deg.dat",
                    Tobs=13.68,
                    #Jbar=84.3e17,
@@ -169,8 +164,8 @@ UrsaMinor = Object("UrsaMinor", "Aeffs/VERITAS-Aeff_20deg.dat",
 
 Fornax = Object("Fornax", "Aeffs/HESS_Aeffs_Crab_20deg.dat", 
                 Tobs=14.5,
-                logJbar=18.3,
-                JbarErr=0.2,
+                logJbar=16.5,
+                JbarErr=0.3,
                 Non=160,
                 Noff=122,
                 alpha=1.,
@@ -182,12 +177,27 @@ ObjList = (Segue1M, Segue1V,
            DracoM, DracoV,
            #Segue1V_tautau,
            Sculptor,
-           Willman1V,
+           #Willman1V,
            UrsaMinor,
            Sgr,
            Fornax)
-#ObjList = (Segue1M,Segue1V)
-#ObjList = (Segue1M,Segue1M)
+
+## # CHB - Testing:
+## ObjList = (#Segue1M, Segue1V,
+##            #DracoM, DracoV,
+##            ##Segue1V_tautau,
+##            Sculptor,
+##            Willman1V,
+##            UrsaMinor,
+##            Sgr,
+##            Fornax
+##            )
+
+
+print '\nCentral logJbar values:'
+for o in ObjList:
+    print o.Name
+    print o.logJbar
 
 # Consider all energies in GeV!!!
 print "\nAll energies are in GeV\n"
@@ -225,26 +235,9 @@ SumOfNon = 0.
 SumOfNoff = 0.
 SumOfAlphaNoff = 0.
 
-CombinationList = (Segue1M, Segue1V,
-                   DracoM, DracoV,
-                   Sculptor,
-                   Willman1V,
-                   UrsaMinor,
-                   Sgr,
-                   Fornax)
-## # CHB - Testing:
-## CombinationList = (Segue1M, Segue1V,
-##                    DracoM, DracoV) # ,
-##                    ## Sculptor,
-##                    ## Willman1V,
-##                    ## UrsaMinor,
-##                    ## Sgr,
-##                    ## Fornax)
+# Important:
+CombinationList = ObjList
 
-
-## print '\nCombinationList =', CombinationList
-## for o in CombinationList:
-##     print CombinationList.index(o)
 
 for o in CombinationList:
      SumOfNul += o.Nul
@@ -273,7 +266,7 @@ print 'SumOfNulbar = ', SumOfNulbar
 def IntegrandSum(E):
     soa = 0.
     for o in CombinationList:
-        soa += o.Tobs*o.Jbar*o.Aeff(E)
+        soa += o.Tobs*(10.**(o.logJbar-2.*o.JbarError))*o.Aeff(E)
     return soa
 
 # Vectorize the integration:
@@ -303,23 +296,17 @@ class Timer():
 
 print 'Sensi integration time:'
 with Timer():
-    # Define array of integrated sensitivities:
+    # Calculate array of integrated sensitivities:
     for o in CombinationList:
         for mchi in mchis:
             o.SensiIntegralArray[int(mchi)] = o.SensiIntegral(mchi)
-            #print 'o.SensiIntegralArray[%.2f] = %.2f' %(mchi, o.SensiIntegralArray[mchi])
 
     
-# Jbar testing list:
-JbarList = range(len(CombinationList))
-for i in JbarList:
-    #JbarList[i] = 1e21
-    JbarList[i] = 18. # (using log values instead!)
-    
+
 
 # IMPORTANT:
 def ComblogLhood(ParArray, mchi):
-    """ Combined (minus) log likelihood. THE master function.
+    """ Combined (minus) log likelihood. The master function.
     ## ParArray:
     ## [0] = log10(sigmav)
     ## [1...] = log10jbarArray -> Note: Index+1 in sum!
@@ -328,7 +315,7 @@ def ComblogLhood(ParArray, mchi):
     return -sum(o.logLhood(10.**ParArray[0], mchi, 10.**ParArray[CombinationList.index(o)+1])
                 +o.logJbarPDF(ParArray[CombinationList.index(o)+1]) for o in CombinationList)
 
-def ComblogLhood_sv(JbarArray, log10sigmav, mchi):
+def ComblogLhood_sv(JbarArray, log10sigmav, mchi): # parameter 
     """ Combined (minus) log likelihood. The master function, as a function of sigmav.
     ## JbarArray:
     ## [0...] = log10jbarArray -> Note: NO index+1 in sum!
@@ -337,100 +324,110 @@ def ComblogLhood_sv(JbarArray, log10sigmav, mchi):
     return -sum(o.logLhood(10.**log10sigmav, mchi, 10.**JbarArray[CombinationList.index(o)])
                 +o.logJbarPDF(JbarArray[CombinationList.index(o)]) for o in CombinationList)
 
-TestArray = np.append(-21., JbarList)
-print 'TestArray = ', TestArray
+## TestArray = np.append(-21., JbarList)
+## print 'TestArray = ', TestArray
+## print type(TestArray)
+## print
     
-print 'CL calling time: '
-with Timer():
-    clout1 = ComblogLhood(TestArray, mchis[-2])
-print 'clout1 = ', clout1 
-print
-#sys.exit()
-
 
 ########################################################
-# Start minimization:
+# Start minimization: Make a profile likelihood array
 ########################################################
 
+# sigmav range: 
 sigmavTestRange = np.arange(-26, -18, (26.-18.)/esteps)
-JBA = np.array(JbarList) # 19's
+
+# Jbar list: take central values as minimization start parameters
+JbarList = np.array([o.logJbar for o in ObjList])
+#print 'JbarList = ', JbarList
+
+
+# Jbar bounds:
 JBbds = []
 for num in JbarList:
-    JBbds.append((16., 22.))
+    JBbds.append((15., 20.))
 
 # Tolerance for minimization attempts:
-mintol = 0.2
+mintol = 0.3
+mintolitself = 0.01
+# Testing:
+mintolitself = None
 
-if not PlotPL:
-    print '\nNot calculating the CLmins array / profile l\'hood.\n'
-#if PlotPL:
-else:
-    print '\n Testing (and plotting) the profile likelihood:', time.ctime()
-    #print '(not right now)\n'
+print '\n Calculating the profile likelihood array:', time.ctime()
 
-    # 2-dim. CL array:
-    CLmins = np.empty((len(mchis), len(sigmavTestRange)))
+# 2-dim. CL array:
+CLmins = np.empty((len(mchis), len(sigmavTestRange)))
 
-    for mchi in mchis:
-        #print 'mchi = ', mchi
-        mindex = (mchis.tolist()).index(mchi)
-        for sv in sigmavTestRange:
-            #print 'sigmav = ', sv
-            svindex = (sigmavTestRange.tolist()).index(sv)
-            minresult4 = minimize(ComblogLhood_sv, JBA, args=(sv, mchi,), bounds=JBbds, 
-                                  method='TNC').fun
-            minresult5 = minimize(ComblogLhood_sv, 0.9*JBA, args=(sv, mchi,), bounds=JBbds, 
-                                  method='TNC').fun
-            if abs(minresult4-minresult5) > mintol:
-                minresult6 = minimize(ComblogLhood_sv, 1.1*JBA, args=(sv, mchi,), bounds=JBbds, 
-                                      method='TNC').fun
-                minimum = min((minresult4, minresult5, minresult6))
-            else:
-                minimum = min((minresult4, minresult5))
+for mchi in mchis:
+    #print 'mchi = ', mchi
+    mindex = (mchis.tolist()).index(mchi)
+    for sv in sigmavTestRange:
+        #print 'sigmav = ', sv
+        svindex = (sigmavTestRange.tolist()).index(sv)
 
-            CLmins[mindex][svindex] = minimum
+        minresult4 = minimize(ComblogLhood_sv, JbarList, args=(sv, mchi,), bounds=JBbds, 
+                              tol = mintolitself, method='TNC', options={'maxiter':500}).fun
+        minresult5 = minimize(ComblogLhood_sv, 0.95*JbarList, args=(sv, mchi,), bounds=JBbds, 
+                              tol = mintolitself, method='TNC', options={'maxiter':500}).fun
+
+        #if abs(minresult4-minresult5) > mintol and min(minresult4, minresult5) < (CLmins.min()+10):
+        # ... kann nicht funktionieren, weil CLmins empty!
+        if abs(minresult4-minresult5) > mintol:
+            minimumalt = min(minresult4, minresult5)
+            minresult6 = minimize(ComblogLhood_sv, 1.05*JbarList, args=(sv, mchi,), bounds=JBbds, 
+                                  tol = mintolitself, method='TNC', options={'maxiter':1000}).fun
+            minresult7 = minimize(ComblogLhood_sv, 0.9*JbarList, args=(sv, mchi,), bounds=JBbds, 
+                                  tol = mintolitself, method='TNC', options={'maxiter':1000}).fun
+            minimum = min((minimumalt, minresult6, minresult7))
+            if abs(minresult6-minimum) > mintol:
+                print 'Note! Minimization problem at mchi = %.1f, sv = %.1f' % (mchi, sv)
+                print 'minimumalt, minresult6, minresult7: ', minimumalt, minresult6, minresult7
+        else:
+            minimum = min((minresult4, minresult5))
+
+        CLmins[mindex][svindex] = minimum
 
 
-    print '\nCLmins array:'
-    print '(not printed anymore)\n'
-    #pprint(CLmins)
+print '\nCLmins array:'
+#print '(not printed anymore)\n'
+pprint(CLmins)
 
-    pickle.dump(CLmins, open('saveCLmins.p','wb'))
+# Save away the CLmins: for plotting (etc.?)
+pickle.dump(CLmins, open('saveCLmins.p','wb'))
 
-    print
-    print
 
 
 # Find sigmav values where  Delta(-2 ln PL) = 2.706 :
 print 'Find sigmav values where  Delta(-2 ln PL) = 2.706 : PRUEFEN!!!\n'
-CLmin = minimize(ComblogLhood_sv, JBA, args=(-26, 2000.,), bounds=JBbds, 
-                  method='TNC').fun
-print 'For logsv =-26, mchi=2000:'
+
+CLmin = np.amin(CLmins)
 print 'CLmin = ', CLmin
+## CLmin2 = np.min(CLmins) #... no real difference, it seems.
+## print 'CLmin2 = ', CLmin2
+## CLmin3 = CLmins.min() #... no real difference, it seems.
+## print 'CLmin3 = ', CLmin3
 
 
+#CLminIndices = np.argmin(CLmins)
+#print 'CLminIndices =', CLminIndices
+print
+print 'Beliebiges Minimization result:'
+CLakt = minimize(ComblogLhood_sv, JbarList, args=(sigmavTestRange[-2], mchis[0],), bounds=JBbds, 
+                 method='TNC', options={'maxiter':1000})
+print CLakt
+
+# Interpolate over CLmins to find the upper limits:
 def findRoot(sigmav, mchi):
-    CLaktuell = minimize(ComblogLhood_sv, JBA, args=(sigmav, mchi,), bounds=JBbds, 
-                         method='TNC').fun
-    if abs(CLaktuell-CLmin)>1.:
-        # Test the minimization result:
-        CLaktuell2 = minimize(ComblogLhood_sv, JBA*0.95, args=(sigmav, mchi,), bounds=JBbds, 
-                              method='TNC').fun
-        if abs(CLaktuell-CLaktuell2) > mintol:
-            print 'Hoppla! findRoot-Problem bei mchi =', mchi
-            
-            CLaktuell3 = minimize(ComblogLhood_sv, JBA*1.05, args=(sigmav, mchi,), bounds=JBbds, 
-                                  method='TNC').fun
-            print 'CLa1,2,3:', CLaktuell, CLaktuell2, CLaktuell3
-            # Take the real minimum:
-            CLaktuell = min((CLaktuell, CLaktuell2, CLaktuell3))
-        else:
-            # Take the real minimum:
-            CLaktuell = min((CLaktuell, CLaktuell2))
-    CLdiff = CLaktuell-CLmin-(2.706/2.)
-    ## if abs(CLdiff) < 0.1:
-    ##     print 'CLaktuell = ', CLaktuell
-    return CLdiff
+    """ This function returns the profile l'hood minus 2.706/2,
+    such that the roots of the function are the upper limits on sigmav."""
+
+    ProfileL = interp(sigmav, # "x"
+                      sigmavTestRange,
+                      CLmins[(mchis.tolist()).index(mchi)][:]) # let's hope for the right index
+
+    ProfileL = ProfileL - CLmin
+    return ProfileL - 2.706/2.
+                 
 
 # Array of sigmav limit values:
 UL_CombLhood = np.zeros_like(mchis)
@@ -441,13 +438,14 @@ for mchi in mchis:
     #if np.log10(mchi)%1.==0:
         #print 'mchi = ', mchi
     try:
-        sigmav_UL = brentq(findRoot, -26., -17., # bracketing values
+        sigmav_UL = brentq(findRoot, -27., -14., # bracketing values
                            args=(mchi,),
                            #full_output=True,
                            #maxfev = 1000, 
                            # factor=0.1
                            )
-    #print 'sigmav_UL = ', sigmav_UL
+        #print 'sigmav_UL = ', sigmav_UL
+        
     except:
         print 'Hoppla! brentq-Problem bei mchi =', mchi
         sigmav_UL = 1.
@@ -687,3 +685,37 @@ sys.exit()
 
 
 #sys.exit()
+
+############################################################
+
+## print 'CL calling time: '
+## with Timer():
+##     clout1 = ComblogLhood(TestArray, mchis[-2])
+## print 'clout1 = ', clout1 
+## print
+#sys.exit()
+
+############################################################
+
+## def findRoot(sigmav, mchi):
+##     CLaktuell = minimize(ComblogLhood_sv, JbarList, args=(sigmav, mchi,), bounds=JBbds, 
+##                          method='TNC').fun
+##     if abs(CLaktuell-CLmin)>1.:
+##         # Test the minimization result:
+##         CLaktuell2 = minimize(ComblogLhood_sv, JbarList*0.95, args=(sigmav, mchi,), bounds=JBbds, 
+##                               method='TNC').fun
+##         if abs(CLaktuell-CLaktuell2) > mintol:
+##             print 'Hoppla! findRoot-Problem bei mchi =', mchi
+            
+##             CLaktuell3 = minimize(ComblogLhood_sv, JbarList*1.05, args=(sigmav, mchi,), bounds=JBbds, 
+##                                   method='TNC').fun
+##             print 'CLa1,2,3:', CLaktuell, CLaktuell2, CLaktuell3
+##             # Take the real minimum:
+##             CLaktuell = min((CLaktuell, CLaktuell2, CLaktuell3))
+##         else:
+##             # Take the real minimum:
+##             CLaktuell = min((CLaktuell, CLaktuell2))
+##     CLdiff = CLaktuell-CLmin-(2.706/2.)
+##     ## if abs(CLdiff) < 0.1:
+##     ##     print 'CLaktuell = ', CLaktuell
+##     return CLdiff

@@ -45,7 +45,7 @@ class Object(object):
         self.logJbar = logJbar
         # Introducing Jbar PDF:
         self.JbarError = JbarErr 
-        #self.JbarError = 0.01 # Testing ...
+        #self.JbarError = 0.05 # Testing ...
         #self.JbarError = 0.5 # half a dec error for the moment
         self.Non = Non
         self.Noff = Noff
@@ -56,7 +56,7 @@ class Object(object):
         # self.Spectrum = eval("PhotonSpectra."+spectrum) # works, but 
         self.Spectrum = getattr(PhotonSpectra, spectrum)  # seems better
         # To be used for sensitivity integration/Exclusion.py:
-        self.SensiIntegralArray = np.zeros(1000000)
+        self.SensiIntegralArray = np.zeros(100001)
         # To be used for likelihood:
         self.logPois2 = poisson.logpmf(self.Noff, self.Noff)
 
@@ -140,7 +140,7 @@ class Object(object):
     def ULsigmav(self,mchi):
         """ Calculates UL on sigmav with the object's member spectrum.
         Assumption: Jbar = Jbar-sigma(Jbar)"""
-        jbar = 10.**(self.logJbar-self.JbarError)
+        jbar = 10.**(self.logJbar-2.*self.JbarError)
         #prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*self.Jbar)
         prefactor = 8.*pi*(mchi**2)*self.Nul/(self.Tobs*jbar)
         result = prefactor / quad(lambda E: (self.Spectrum(E,mchi)*self.Aeff(E)),

@@ -79,7 +79,7 @@ def plotPubs():
     ax1.set_xscale('log')
     ax1.set_ylabel(r'<$\sigma$v>$_{\textrm{UL}}$ (cm$^{3}$s$^{-1}$)')
     ax1.set_xlabel(r'$m_{\chi}$ (GeV)')
-    ax1.set_ylim(1e-26,1e-20)
+    ax1.set_ylim(1e-26,1e-19)
     ax1.yaxis.grid(color='gray', linestyle='dashed')
     ax1.xaxis.grid(color='gray', linestyle='dashed')
 
@@ -133,7 +133,13 @@ def plotComb():
              linestyle='dashed', label='Combined l\'hood limit, with Jbar PDFs')
     
     plt.legend(loc=4,ncol=2,prop=matplotlib.font_manager.FontProperties(size='small'))
-    plt.show()
+
+    CLmins = True
+    #CLmins = False
+    if CLmins:
+        plotCLmins()
+    else:
+        plt.show()
 
     
 def plotAeffs():
@@ -224,23 +230,23 @@ def plotCLmins():
         print '\nDimension error!\n'
         sys.exit()
     print
-    mm = min(CLmins[:][0])
-    print 'min(CLmins[:][0]) =', mm
+    mm = np.amin(CLmins)
+    print 'np.amin(CLmins) =', mm
                          
     # Print CLmins array:
     #pprint(CLmins)
 
     # Prepare plot:
-    fig1 = plt.figure(1)
-    ax1 = fig1.add_subplot(111)
-#    ax1.set_yscale('log')
-#   ax1.set_xscale('log')
-    ax1.set_ylabel(r'$\mathcal{PL}$')
-    ax1.set_xlabel(r'$\log$<$\sigma$v>')
-    ax1.set_ylim(mm-10.,mm+50)
-    ax1.set_xlim(-25.,-18)
-    ax1.yaxis.grid(color='gray', linestyle='dashed')
-    ax1.xaxis.grid(color='gray', linestyle='dashed')
+    fig2 = plt.figure(2)
+    ax2 = fig2.add_subplot(111)
+#    ax2.set_yscale('log')
+#   ax2.set_xscale('log')
+    ax2.set_ylabel(r'$\mathcal{PL}$')
+    ax2.set_xlabel(r'$\log$<$\sigma$v>')
+    ax2.set_ylim(-5.,25.)
+    ax2.set_xlim(-26.,-18)
+    ax2.yaxis.grid(color='gray', linestyle='dashed')
+    ax2.xaxis.grid(color='gray', linestyle='dashed')
 
 
     # Calculate some values:
@@ -256,7 +262,22 @@ def plotCLmins():
 
     # Plot data from CLmins array:
     for i in range(len(CLmins[:][0])): # length = number of rows
-        ## #ax1.plot(sigmavTestRange, CLmins[i][:])#, label=r'$\tau\tau$')
+        ## #ax2.plot(sigmavTestRange, CLmins[i][:])#, label=r'$\tau\tau$')
+
+        # Unsmoothed profile likelihood:
+        ax2.set_title('Profile likelihood for different masses')
+        ax2.plot(sigmavTestRange, 2.*(CLmins[i][:]-ArrayMin))
+
+
+        
+    plt.show()
+
+##########################################
+# THE END
+##########################################
+
+
+# Smoothign etc:
 
         ## # Refer(!) to a specific row:
         ## CLmZeile = CLmins[i][:] 
@@ -298,19 +319,9 @@ def plotCLmins():
         ## f = interpolate.interp1d(sigmavTestRange, CLmSmooth, kind=3) 
         ## y = f(svtr2)
 
-        # Unsmoothed CLmins:
-        ax1.plot(sigmavTestRange, CLmins[i][:])
 
         # Smoothed values:
         #ax1.plot(sigmavTestRange, CLmSmooth)
 
         # Interpolated values:
         #ax1.plot(svtr2, y)#, label=r'$\tau\tau$')
-
-        
-    plt.show()
-
-##########################################
-# THE END
-##########################################
-
