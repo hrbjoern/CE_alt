@@ -379,7 +379,7 @@ for mchi in mchis:
             minresult7 = minimize(ComblogLhood_sv, 0.9*JbarList, args=(sv, mchi,), bounds=JBbds, 
                                   tol = mintolitself, method='TNC', options={'maxiter':1000}).fun
             minimum = min((minimumalt, minresult6, minresult7))
-            if abs(minresult6-minimum) > mintol:
+            if abs(min(minresult6,minresult7)-minimum) > mintol:
                 print 'Note! Minimization problem at mchi = %.1f, sv = %.1f' % (mchi, sv)
                 print 'minimumalt, minresult6, minresult7: ', minimumalt, minresult6, minresult7
         else:
